@@ -19,7 +19,7 @@ export const ClaudeCodeProvider = await defineProviderPlugin({
   cliGuard: () => maybeRunCli(),
   readme: {
     description:
-      "A [basekit/auth](https://github.com/intisy-ai/basekit) provider that signs in to Claude with the real Claude Code OAuth flow and lets you add **multiple Claude subscription accounts**. Both Claude Code (via the loader proxy) and OpenCode route requests through it, rotating accounts and respecting each one's subscription rate limits, so OpenCode uses your Claude Code subscription instead of a pay-per-token API key.",
+      "A [basekit/auth](https://github.com/forebay/basekit) provider that signs in to Claude with the real Claude Code OAuth flow and lets you add **multiple Claude subscription accounts**. Both Claude Code (via the loader proxy) and OpenCode route requests through it, rotating accounts and respecting each one's subscription rate limits, so OpenCode uses your Claude Code subscription instead of a pay-per-token API key.",
     architecture: `flowchart TD
     subgraph Driver [claude-code driver, thin layer on basekit auth]
         HANDLE["handle(request), Anthropic request rewrite"]

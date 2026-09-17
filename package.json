@@ -8,7 +8,7 @@
   "author": "intisy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/intisy-ai/claude-code-auth.git"
+    "url": "git+https://github.com/forebay/claude-code-auth.git"
   },
   "keywords": [
     "opencode",
