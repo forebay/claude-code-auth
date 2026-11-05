@@ -1,27 +1,56 @@
 {
-  "$schema": "./node_modules/@intisy/bayonet/schema/plugin.schema.json",
+  "$schema": "https://weivel.github.io/model/plugin.schema.json",
   "id": "claude-code-auth",
   "api": 1,
-  "entry": "dist/index.js",
+  "version": "2.12.5",
+  "entry": "dist/plugin.js",
+  "bundle": {
+    "entry": "src/plugin.ts"
+  },
   "displayName": "Claude Code",
   "icon": "icon.svg",
   "capabilities": [
-    "provider",
-    "settings"
+    "provider"
   ],
   "services": {
+    "provides": [
+      "claude-code-auth:accounts"
+    ],
     "consumes": [
-      "provider-support"
+      "accounts"
     ]
   },
-  "commands": [
-    {
-      "name": "claude-accounts",
-      "description": "List signed-in Claude subscription accounts",
-      "shell": "node \"{{BUNDLE}}\" accounts",
-      "body": "Above are the Claude subscription accounts and their enabled state. Report them; if none, tell the user to add one (oc auth login -> Claude, or the loader login flow)."
+  "actions": {
+    "login": {
+      "label": "Sign in to Claude",
+      "call": { "service": "claude-code-auth:accounts", "method": "login" },
+      "input": {
+        "code": {
+          "type": "text",
+          "label": "Authorization code",
+          "help": "Leave empty to get the sign in url; after signing in, paste the code#state shown."
+        }
+      }
+    },
+    "accounts": {
+      "label": "List accounts",
+      "call": { "service": "claude-code-auth:accounts", "method": "list" }
+    },
+    "verify": {
+      "label": "Verify access",
+      "call": { "service": "claude-code-auth:accounts", "method": "verify" }
+    },
+    "refresh": {
+      "label": "Refresh token",
+      "call": { "service": "claude-code-auth:accounts", "method": "refresh" }
+    },
+    "remove": {
+      "label": "Remove account",
+      "confirm": "Remove this account and its tokens?",
+      "tone": "danger",
+      "call": { "service": "claude-code-auth:accounts", "method": "remove" }
     }
-  ],
+  },
   "config": {
     "name": "claude-code",
     "defaults": {
@@ -29,14 +58,11 @@
       "max_account_attempts": 4,
       "account_selection_strategy": "hybrid",
       "default_cooldown_seconds": 60,
-      "max_cooldown_seconds": 900
+      "max_cooldown_seconds": 900,
+      "oauth_authorize_url": "https://claude.ai/oauth/authorize",
+      "oauth_token_url": "https://platform.claude.com/v1/oauth/token",
+      "api_base_url": "https://api.anthropic.com"
     }
-  },
-  "publish": {
-    "jarModule": [
-      "claude-provider"
-    ],
-    "generatedReadme": true
   },
   "repo": {
     "role": "Claude Code (Anthropic) provider",

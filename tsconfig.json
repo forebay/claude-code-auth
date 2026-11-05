@@ -1,16 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true
+    "target": "ESNext", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "declaration": true, "outDir": "./dist", "rootDir": ".",
+    "skipLibCheck": true, "esModuleInterop": true, "types": ["node"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/**/*.test.ts", "src/generated"]
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["src/driver", "src/__tests__", "src/generated", "src/handler.ts", "src/index.ts", "src/cli.ts", "src/commands.ts"]
 }

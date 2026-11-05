@@ -1,8 +1,8 @@
 {
   "name": "claude-code-auth",
   "version": "2.12.5",
-  "description": "Claude Code subscription auth provider for OpenCode and Claude Code, multiple Claude accounts via OAuth, with subscription rate limits exposed to OpenCode.",
-  "main": "dist/index.js",
+  "description": "Claude Code subscription auth provider on the shared host, multiple Claude accounts via OAuth, with subscription rate limits exposed to the proxy.",
+  "main": "dist/plugin.js",
   "type": "module",
   "license": "MIT",
   "author": "intisy",
@@ -11,7 +11,6 @@
     "url": "git+https://github.com/forebay/claude-code-auth.git"
   },
   "keywords": [
-    "opencode",
     "claude",
     "claude-code",
     "anthropic",
@@ -20,9 +19,6 @@
     "provider",
     "auth"
   ],
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "files": [
     "dist/",
     "plugin.json",
@@ -30,36 +26,20 @@
     "README.md",
     "LICENSE"
   ],
-  "bin": {
-    "claude-code-auth": "dist/cli.js"
-  },
-  "claudeHub": {
-    "authProviders": [
-      {
-        "name": "claude-code",
-        "handler": "dist/handler.js",
-        "models": []
-      }
-    ]
+  "engines": {
+    "node": ">=20.0.0"
   },
   "scripts": {
-    "emit:teavm": "node node_modules/@intisy/bayonet/scripts/emit-dts.mjs --java-dir . --module :claude-teavm --out src/generated",
-    "build": "npm run emit:teavm && node node_modules/@intisy/bayonet/scripts/teavm-build.mjs --java-dir . --module :claude-teavm --out src/generated/claude-orchestrator.teavm.js && node build.mjs",
-    "test": "npm run build && npm run typecheck && vitest run",
-    "prepublishOnly": "npm run build",
-    "typecheck": "tsc --noEmit",
-    "postbuild": "node dist/index.js readme"
-  },
-  "dependencies": {
-    "@intisy-ai/anthropic-translator": "^1.0.2",
-    "@intisy-ai/basekit": "^5.0.0",
-    "@openauthjs/openauth": "^0.4.3"
+    "build": "tsc -p tsconfig.build.json",
+    "test": "npm run build && tsc --noEmit && vitest run",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@intisy/bayonet": "^1.8.0",
-    "@types/node": "^22.19.19",
-    "esbuild": "^0.25.12",
-    "typescript": "^5.0.0",
-    "vitest": "^4.1.7"
+    "@forebay/host": "file:./siblings/host",
+    "@types/node": "22.10.2",
+    "@weivel/typescript": "file:./siblings/host/siblings/typescript",
+    "ajv": "8.17.1",
+    "typescript": "5.7.2",
+    "vitest": "3.2.7"
   }
 }

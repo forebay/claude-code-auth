@@ -1,39 +1,51 @@
-import type { Plugin, PluginContext } from "@intisy/bayonet";
-import type { Provider, ProviderSupport } from "@intisy-ai/basekit/auth";
-import type { SettingsCapability } from "@intisy-ai/basekit";
-import { driver } from "./driver/index.js";
-import { CLAUDE_SETTINGS } from "./settings.js";
+import { join } from "node:path";
+import type { AccountsService, Provider } from "@forebay/host";
+import type { Plugin, PluginContext } from "@weivel/typescript";
+import { createTokenAccess } from "./accounts/access.js";
+import { listAccountsAction, refreshAction, removeAction, verifyAction } from "./accounts/actions.js";
+import type { AccountDependencies } from "./accounts/dependencies.js";
+import { createLoginAction } from "./accounts/login.js";
+import { createProvider } from "./provider.js";
+import { clientIdOf, readSettings } from "./settings.js";
 
-const PROVIDER_ID = "claude-code";
+const ACCOUNTS_STORE_FILE = "accounts.json";
+const ACTIONS_SERVICE = "claude-code-auth:accounts";
 
-// The id the manifest states under services.consumes. Named here rather than imported, because
-// importing it would link the library this service exists to keep out of the bundle.
-const PROVIDER_SUPPORT = "provider-support";
+function accountsOf(context: PluginContext): () => AccountsService {
+  return () => {
+    const accounts = context.services.get(context.service<AccountsService>("accounts"));
+    if (accounts === undefined) throw new Error("this host offers no accounts service, so claude-code-auth cannot pick an account");
+    return accounts;
+  };
+}
 
-/**
- * What an in-process host loads: the api plugin this bundle's default export carries.
- *
- * @remarks
- * The provider helpers come from the host rather than from an import, so this bundle carries no
- * copy of the library that implements them. A host offering none cannot run a provider at all, so
- * the throw names the service instead of leaving the capability silently unprovided.
- */
+function dependenciesOf(context: PluginContext): AccountDependencies {
+  return {
+    accounts: accountsOf(context),
+    store: join(context.paths.plugin, ACCOUNTS_STORE_FILE),
+    secrets: context.secrets,
+    settings: () => readSettings(context.config),
+    clientId: () => clientIdOf(process.env),
+    clock: Date.now,
+    random: Math.random,
+    log: (message) => context.log.warn(message),
+  };
+}
+
 const plugin: Plugin = {
-  activate(context: PluginContext) {
-    const support = context.services.get(context.service<ProviderSupport>(PROVIDER_SUPPORT));
-    if (!support) throw new Error(`this host offers no "${PROVIDER_SUPPORT}" service, so it cannot run a provider`);
-    context.provide(context.capability<Provider>("provider"), support.capability(driver));
-    context.provide(context.capability<SettingsCapability>("settings"), {
-      schema: () => CLAUDE_SETTINGS,
-      run: async (actionId: string) => {
-        if (actionId !== "accounts") return { ok: false, message: `unknown action: ${actionId}` };
-        support.printAccounts(PROVIDER_ID, driver.accounts);
-        return { ok: true };
-      },
+  activate(context) {
+    const dependencies = dependenciesOf(context);
+    const access = createTokenAccess(dependencies);
+    context.provide(context.capability<Provider>("provider"), createProvider(dependencies, access));
+    context.services.register(context.service(ACTIONS_SERVICE), {
+      login: createLoginAction(dependencies),
+      list: listAccountsAction(dependencies),
+      verify: verifyAction(dependencies, access),
+      refresh: refreshAction(dependencies, access),
+      remove: removeAction(dependencies),
     });
   },
   deactivate() {},
 };
 
-/** This plugin, as an api host loads it. */
 export default plugin;
