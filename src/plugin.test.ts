@@ -52,6 +52,8 @@ async function activated(accounts: AccountsService | null = library.accounts): P
     service: (id: string) => ({ id }),
     config: { get: (key: string) => settings[key], all: () => settings },
     paths: { plugin: pluginDirectory },
+    host: { api: 1, app: "the-loader", surfaces: [] },
+    manifest: MANIFEST,
     secrets,
     log: { warn: () => {} },
     provide: (type: { id: string }, implementation: unknown) => provided.set(type.id, implementation),
@@ -151,7 +153,9 @@ describe("the provider", () => {
 
   it("answers 400 for a request before any account was added", async () => {
     const { provider } = await activated();
-    expect(((await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrFailure).status).toBe(400);
+    const answer = (await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrFailure;
+    expect(answer.status).toBe(400);
+    expect(JSON.parse(answer.body).error.message).toBe("No Claude account available, all accounts are disabled or logged out. Run `forebay-host action the-loader claude-code-auth login` to log one in.");
     expect(server.requests).toHaveLength(0);
   });
 

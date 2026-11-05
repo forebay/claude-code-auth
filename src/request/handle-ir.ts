@@ -12,7 +12,6 @@ import { reportAttempt } from "./report.js";
 import { parseResetMs } from "./reset.js";
 import { rewrite } from "./rewrite.js";
 
-const NO_ACCOUNT_MESSAGE = "No Claude account available, all accounts are disabled or logged out. Run `cc auth` to add or re-enable one.";
 const ALL_COOLING_MESSAGE = "No Claude account free right now (all rate-limited). Try again shortly.";
 
 type Received = Extract<Attempt, { kind: "response" }>;
@@ -33,8 +32,9 @@ function allCooling(availableAt: number | undefined, now: number): IrFailure {
   return availableAt === undefined ? answer : { ...answer, retryAfterMilliseconds: Math.max(0, availableAt - now) };
 }
 
-function noAccount(): IrFailure {
-  const body = JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: NO_ACCOUNT_MESSAGE } });
+function noAccount(loginCommand: string): IrFailure {
+  const message = `No Claude account available, all accounts are disabled or logged out. Run \`${loginCommand}\` to log one in.`;
+  const body = JSON.stringify({ type: "error", error: { type: "invalid_request_error", message } });
   return failure(400, body, { "content-type": "application/json", "x-hub-chat-error": "1" });
 }
 
@@ -123,8 +123,8 @@ export function createHandleIr(dependencies: AccountDependencies, access: TokenA
     if ("failure" in acquired) return { answer: acquired.failure };
     const { account } = acquired;
     const now = dependencies.clock();
-    if (account.none === true) return { answer: account.nextAvailableAt === undefined ? noAccount() : allCooling(account.nextAvailableAt, now) };
-    if (account.id === undefined) return { answer: noAccount() };
+    if (account.none === true) return { answer: account.nextAvailableAt === undefined ? noAccount(dependencies.loginCommand) : allCooling(account.nextAvailableAt, now) };
+    if (account.id === undefined) return { answer: noAccount(dependencies.loginCommand) };
     if (account.available === false) return { answer: allCooling(account.availableAt, now) };
     const id = account.id;
     const token = await ensured(id, signal);

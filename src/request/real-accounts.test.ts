@@ -11,6 +11,7 @@ import type { TokenAccess } from "../accounts/access.js";
 import type { AccountDependencies } from "../accounts/dependencies.js";
 import { readSettings } from "../settings.js";
 import { createHandleIr } from "./handle-ir.js";
+import { loginCommandOf } from "../accounts/dependencies.js";
 
 const REQUEST: IrRequest = anthropicTranslator.decodeRequest({ model: "claude-sonnet-4", messages: [] });
 const NEVER_ABORTED = new AbortController().signal;
@@ -39,6 +40,7 @@ function dependencies(strategy: string): AccountDependencies {
     clientId: () => "client",
     clock: () => NOW,
     random: () => 0.5,
+    loginCommand: loginCommandOf("claude-code-loader", "claude-code-auth"),
     log: () => {},
   };
 }

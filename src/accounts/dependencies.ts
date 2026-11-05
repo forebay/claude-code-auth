@@ -12,6 +12,8 @@ export interface AccountDependencies {
   clock: () => number;
   random: () => number;
   log: (message: string) => void;
+  /** The command that logs an account in, `forebay-host action <host> <plugin> login`, which the answer to a request no account serves names. */
+  loginCommand: string;
   /** How long a shared token refresh may take before it counts as a failed one. */
   refreshTimeoutMilliseconds?: number;
 }
@@ -57,4 +59,9 @@ export function accessSecretName(id: string): string {
 
 export function refreshSecretName(id: string): string {
   return `account.${id}.refresh`;
+}
+
+/** The command running this plugin's login action on host `hostId`. */
+export function loginCommandOf(hostId: string, pluginId: string): string {
+  return `forebay-host action ${hostId} ${pluginId} login`;
 }

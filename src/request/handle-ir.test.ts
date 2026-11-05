@@ -12,6 +12,7 @@ import type { TokenAccess } from "../accounts/access.js";
 import type { AccountDependencies } from "../accounts/dependencies.js";
 import { readSettings } from "../settings.js";
 import { createHandleIr } from "./handle-ir.js";
+import { loginCommandOf } from "../accounts/dependencies.js";
 
 type Call = unknown[];
 
@@ -96,6 +97,7 @@ function dependenciesFor(accounts: AccountsService, overrides: Record<string, un
     clientId: () => "client",
     clock: () => NOW,
     random: () => 0.5,
+    loginCommand: loginCommandOf("claude-code-loader", "claude-code-auth"),
     log: (message) => logged.push(message),
   };
 }

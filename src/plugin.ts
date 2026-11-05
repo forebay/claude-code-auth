@@ -3,6 +3,7 @@ import type { AccountsService, Provider } from "@forebay/host";
 import type { Plugin, PluginContext } from "@weivel/typescript";
 import { createTokenAccess } from "./accounts/access.js";
 import { listAccountsAction, refreshAction, removeAction, verifyAction } from "./accounts/actions.js";
+import { loginCommandOf } from "./accounts/dependencies.js";
 import type { AccountDependencies } from "./accounts/dependencies.js";
 import { createLoginAction } from "./accounts/login.js";
 import { quotaAction } from "./accounts/quota-action.js";
@@ -30,6 +31,7 @@ function dependenciesOf(context: PluginContext): AccountDependencies {
     clock: Date.now,
     random: Math.random,
     log: (message) => context.log.warn(message),
+    loginCommand: loginCommandOf(context.host.app, context.manifest.id),
   };
 }
 

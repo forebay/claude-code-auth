@@ -1,6 +1,6 @@
 [
   {
-    "name": "happy path — 200 on attempt 0 (captureQuota mutate + reportSuccess + SERVE)",
+    "name": "happy path - 200 on attempt 0 (captureQuota mutate + reportSuccess + SERVE)",
     "snap": {
       "status": 200,
       "headers": {
@@ -60,7 +60,7 @@
     ]
   },
   {
-    "name": "happy path via proxy — reportResult(true) then SERVE",
+    "name": "happy path via proxy - reportResult(true) then SERVE",
     "snap": {
       "status": 200,
       "headers": {
@@ -106,7 +106,7 @@
     ]
   },
   {
-    "name": "429-then-ok via proxy — rotate + proxy reportRateLimit ipSuspected:true (has quota)",
+    "name": "429-then-ok via proxy - rotate + proxy reportRateLimit ipSuspected:true (has quota)",
     "snap": {
       "status": 200,
       "headers": {
@@ -188,7 +188,7 @@
     ]
   },
   {
-    "name": "429-then-ok via proxy — proxy reportRateLimit ipSuspected:false (no quota)",
+    "name": "429-then-ok via proxy - proxy reportRateLimit ipSuspected:false (no quota)",
     "snap": {
       "status": 200,
       "headers": {
@@ -270,7 +270,7 @@
     ]
   },
   {
-    "name": "429 with NO reset header then ok — exponential-backoff reset parity",
+    "name": "429 with NO reset header then ok - exponential-backoff reset parity",
     "snap": {
       "status": 200,
       "headers": {
@@ -340,7 +340,7 @@
     ]
   },
   {
-    "name": "529 with NO reset header then ok — exponential-backoff reset parity",
+    "name": "529 with NO reset header then ok - exponential-backoff reset parity",
     "snap": {
       "status": 200,
       "headers": {
@@ -410,7 +410,7 @@
     ]
   },
   {
-    "name": "two 429s with NO reset header then ok — doubling backoff parity",
+    "name": "two 429s with NO reset header then ok - doubling backoff parity",
     "snap": {
       "status": 200,
       "headers": {
@@ -660,7 +660,7 @@
     ]
   },
   {
-    "name": "transport failure (no proxy) then ok — reportError message is the documented divergence",
+    "name": "transport failure (no proxy) then ok - reportError message is the documented divergence",
     "snap": {
       "status": 200,
       "headers": {
@@ -731,7 +731,7 @@
     ]
   },
   {
-    "name": "transport failure via proxy → direct-retry succeeds — reportResult(false) then SERVE",
+    "name": "transport failure via proxy → direct-retry succeeds - reportResult(false) then SERVE",
     "snap": {
       "status": 200,
       "headers": {
@@ -849,7 +849,7 @@
         "content-type": "application/json",
         "x-hub-chat-error": "1"
       },
-      "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"No Claude account available, all accounts are disabled or logged out. Run `cc auth` to add or re-enable one.\"}}"
+      "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"No Claude account available, all accounts are disabled or logged out. Run `forebay-host action claude-code-loader claude-code-auth login` to log one in.\"}}"
     },
     "calls": [
       [
@@ -879,7 +879,7 @@
     "outbound": []
   },
   {
-    "name": "exhaustion — all 429, SERVE the last real upstream 429",
+    "name": "exhaustion - all 429, SERVE the last real upstream 429",
     "snap": {
       "status": 429,
       "headers": {
@@ -1010,7 +1010,7 @@
     ]
   },
   {
-    "name": "exhaustion — all transport-fail, synthetic 502",
+    "name": "exhaustion - all transport-fail, synthetic 502",
     "snap": {
       "status": 502,
       "headers": {

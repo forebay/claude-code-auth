@@ -8,6 +8,7 @@ import { startOauthServer } from "./fixtures/oauth-server.js";
 import type { OauthServer } from "./fixtures/oauth-server.js";
 import { openTestAccounts } from "./accounts-library.js";
 import type { TestAccounts } from "./accounts-library.js";
+import { loginCommandOf } from "../src/accounts/dependencies.js";
 
 export const NOW = 1_700_000_000_000;
 export const NEVER_ABORTED = new AbortController().signal;
@@ -65,6 +66,7 @@ export function useWorld(): () => World {
         clientId: () => "client-under-test",
         clock: () => time,
         random: () => 0.5,
+        loginCommand: loginCommandOf("claude-code-loader", "claude-code-auth"),
         log: (message) => reports.push(message),
       },
     };
