@@ -1,4 +1,4 @@
-import { expiryOf, jsonBodyOf, objectMember, textMember } from "./token-set.js";
+import { describeRefusal, expiryOf, isTimeout, jsonBodyOf, objectMember, textMember } from "./token-set.js";
 import type { TokenSet } from "./token-set.js";
 
 export interface RefreshRequest {
@@ -25,7 +25,7 @@ async function post(request: RefreshRequest): Promise<Response> {
 
 async function refusal(response: Response): Promise<RefreshOutcome> {
   const code = textMember(await jsonBodyOf(response), "error");
-  return { ok: false, revoked: code === REVOKED_CODE, message: `the token endpoint answered ${response.status}${code === undefined ? "" : ` (${code})`}` };
+  return { ok: false, revoked: code === REVOKED_CODE, message: describeRefusal(response.status, code) };
 }
 
 function tokensOf(payload: unknown, request: RefreshRequest): RefreshOutcome {
@@ -40,6 +40,7 @@ export async function refreshTokens(request: RefreshRequest): Promise<RefreshOut
   try {
     response = await post(request);
   } catch (cause) {
+    if (isTimeout(cause)) return { ok: false, revoked: false, message: "the token endpoint did not answer in time" };
     if (request.signal?.aborted === true) throw cause;
     return { ok: false, revoked: false, message: "the token endpoint could not be reached" };
   }

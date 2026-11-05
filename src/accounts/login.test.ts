@@ -103,6 +103,21 @@ describe("the login action", () => {
     await expect(createLoginAction(without)({})).rejects.toThrow(/secret store/);
   });
 
+  it("rolls the tokens back and fails with the refusal's cause and fix when the service refuses the account", async () => {
+    const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, upsert: () => ({ refused: "the store is read only", fix: "make it writable" }) }) };
+    await expect(createLoginAction(refusing)({ code: await pastedCode() })).rejects.toThrow(/the store is read only.*make it writable/);
+    expect(world().secrets.entries.size).toBe(0);
+  });
+
+  it("restores the previous tokens of an existing account when its re-login is refused", async () => {
+    await createLoginAction(world().dependencies)({ code: await pastedCode() });
+    world().server.tokenResponder = () => ({ status: 200, body: { access_token: "newer", refresh_token: "newer-refresh", account: { email_address: "me@example.com" } } });
+    const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, upsert: () => ({ refused: "no", fix: "retry" }) }) };
+    await expect(createLoginAction(refusing)({ code: await pastedCode() })).rejects.toThrow(/no; retry/);
+    expect(world().secrets.entries.get("account.me@example.com.refresh")).toBe("refresh-from-grant");
+    expect(world().secrets.entries.get("account.me@example.com.access")).toBe("access-from-grant");
+  });
+
   it("removes the tokens again when the account cannot be stored", async () => {
     const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, upsert: () => { throw new Error("store is locked"); } }) };
     await expect(createLoginAction(refusing)({ code: await pastedCode() })).rejects.toThrow(/store is locked/);

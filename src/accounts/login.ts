@@ -3,7 +3,7 @@ import { authorizationUrl } from "../oauth/authorize.js";
 import { exchangeCode } from "../oauth/exchange.js";
 import { parsePastedCallback } from "../oauth/paste.js";
 import type { TokenSet } from "../oauth/token-set.js";
-import { accessSecretName, findAccount, refreshSecretName, secretsOf } from "./dependencies.js";
+import { accepted, accessSecretName, findAccount, refreshSecretName, secretsOf } from "./dependencies.js";
 import type { AccountDependencies } from "./dependencies.js";
 
 export type LoginAnswer =
@@ -12,6 +12,7 @@ export type LoginAnswer =
 
 const NEXT_STEP = "open the url, sign in, then run login again with the code shown (code#state) as the code input";
 const FALLBACK_ID_DIGITS = 12;
+const EXCHANGE_TIMEOUT_MILLISECONDS = 30000;
 
 /** @implNote An account the upstream names neither by email nor by organisation still needs a stable id, and the refresh token itself must never become one. */
 function accountIdOf(label: string | undefined, tokens: TokenSet): string {
@@ -25,10 +26,25 @@ async function storeTokens(dependencies: AccountDependencies, id: string, tokens
   else await secrets.set(accessSecretName(id), tokens.access);
 }
 
-async function removeTokens(dependencies: AccountDependencies, id: string): Promise<void> {
+interface PreviousTokens {
+  access: string | undefined;
+  refresh: string | undefined;
+}
+
+async function previousTokens(dependencies: AccountDependencies, id: string): Promise<PreviousTokens> {
   const secrets = secretsOf(dependencies);
-  await secrets.delete(accessSecretName(id));
-  await secrets.delete(refreshSecretName(id));
+  return { access: await secrets.get(accessSecretName(id)), refresh: await secrets.get(refreshSecretName(id)) };
+}
+
+async function restoreSecret(dependencies: AccountDependencies, name: string, value: string | undefined): Promise<void> {
+  const secrets = secretsOf(dependencies);
+  if (value === undefined) await secrets.delete(name);
+  else await secrets.set(name, value);
+}
+
+async function restoreTokens(dependencies: AccountDependencies, id: string, previous: PreviousTokens): Promise<void> {
+  await restoreSecret(dependencies, accessSecretName(id), previous.access);
+  await restoreSecret(dependencies, refreshSecretName(id), previous.refresh);
 }
 
 function upsertAccount(dependencies: AccountDependencies, id: string, tokens: TokenSet): "added" | "updated" | "unchanged" {
@@ -41,19 +57,20 @@ function upsertAccount(dependencies: AccountDependencies, id: string, tokens: To
     ...(existing === undefined ? { addedAt: dependencies.clock() } : {}),
     ...(existing?.disabledReason === undefined || existing.disabledReason === "" ? {} : { disabledReason: "" }),
   };
-  return dependencies.accounts().upsert({ store: dependencies.store, account }).outcome ?? "updated";
+  const answer = accepted(dependencies.accounts().upsert({ store: dependencies.store, account }), "the account could not be stored");
+  return answer.outcome ?? "updated";
 }
 
 async function complete(dependencies: AccountDependencies, pasted: { code: string; state: string }): Promise<LoginAnswer> {
-  const exchanged = await exchangeCode({ tokenUrl: dependencies.settings().tokenUrl, clientId: dependencies.clientId(), code: pasted.code, state: pasted.state, now: dependencies.clock() });
+  const exchanged = await exchangeCode({ tokenUrl: dependencies.settings().tokenUrl, clientId: dependencies.clientId(), code: pasted.code, state: pasted.state, now: dependencies.clock(), signal: AbortSignal.timeout(EXCHANGE_TIMEOUT_MILLISECONDS) });
   if (!exchanged.ok) throw new Error(`the sign in could not be completed: ${exchanged.error}; run login without a code for a new url`);
   const id = accountIdOf(exchanged.label, exchanged.tokens);
-  const isNew = findAccount(dependencies, id) === undefined;
+  const previous = await previousTokens(dependencies, id);
   await storeTokens(dependencies, id, exchanged.tokens);
   try {
     return { id, label: id, outcome: upsertAccount(dependencies, id, exchanged.tokens) };
   } catch (cause) {
-    if (isNew) await removeTokens(dependencies, id);
+    await restoreTokens(dependencies, id, previous);
     throw cause;
   }
 }

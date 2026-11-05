@@ -1,8 +1,8 @@
 import { refreshTokens } from "../oauth/refresh.js";
-import { accessSecretName, findAccount, refreshSecretName, secretsOf } from "./dependencies.js";
+import { accessSecretName, findAccount, logIfRefused, refreshSecretName, secretsOf } from "./dependencies.js";
 import type { AccountDependencies } from "./dependencies.js";
 
-const REFRESH_TIMEOUT_MILLISECONDS = 30000;
+const DEFAULT_REFRESH_TIMEOUT_MILLISECONDS = 30000;
 const RE_LOGIN_REQUIRED = "re-login required";
 
 /** The access token of an account, or why none is usable. */
@@ -19,27 +19,40 @@ function unusable(reason: string): AccessAnswer {
   return { none: true, reason };
 }
 
-function report(dependencies: AccountDependencies, id: string, now: number, outcome: "disabled" | "error", reason: string): void {
+function report(dependencies: AccountDependencies, id: string, now: number, outcome: "disabled" | "error" | "success", reason?: string): void {
   const settings = dependencies.settings();
   try {
-    dependencies.accounts().report({
+    const answer = dependencies.accounts().report({
       store: dependencies.store,
       id,
       outcome,
-      reason,
+      ...(reason === undefined ? {} : { reason }),
       now,
       random: dependencies.random(),
       baseMilliseconds: settings.defaultCooldownSeconds * 1000,
       maxMilliseconds: settings.maxCooldownSeconds * 1000,
     });
+    logIfRefused(dependencies, answer, `could not report ${outcome} for ${id}`);
   } catch (cause) {
     dependencies.log(`could not report ${outcome} for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`);
   }
 }
 
-async function refreshed(dependencies: AccountDependencies, id: string, now: number): Promise<AccessAnswer> {
+function hasCooldown(dependencies: AccountDependencies, id: string): boolean {
+  const until = findAccount(dependencies, id)?.coolingDownUntil;
+  return typeof until === "number" && until > 0;
+}
+
+/** @implNote The refresh token is written before the access token: a rotated one is already spent upstream, so losing it would lose the account. */
+async function storeRefreshed(dependencies: AccountDependencies, id: string, previousRefresh: string, tokens: { access: string; refresh: string; expires: number }): Promise<void> {
   const secrets = secretsOf(dependencies);
-  const refreshToken = await secrets.get(refreshSecretName(id));
+  if (tokens.refresh !== previousRefresh) await secrets.set(refreshSecretName(id), tokens.refresh);
+  await secrets.set(accessSecretName(id), tokens.access);
+  logIfRefused(dependencies, dependencies.accounts().upsert({ store: dependencies.store, account: { id, expires: tokens.expires } }), `could not store the new expiry of ${id}`);
+}
+
+async function refreshed(dependencies: AccountDependencies, id: string, now: number): Promise<AccessAnswer> {
+  const refreshToken = await secretsOf(dependencies).get(refreshSecretName(id));
   if (refreshToken === undefined) {
     report(dependencies, id, now, "disabled", `${RE_LOGIN_REQUIRED} (no refresh token is stored)`);
     return unusable(RE_LOGIN_REQUIRED);
@@ -49,17 +62,15 @@ async function refreshed(dependencies: AccountDependencies, id: string, now: num
     clientId: dependencies.clientId(),
     refreshToken,
     now,
-    signal: AbortSignal.timeout(REFRESH_TIMEOUT_MILLISECONDS),
+    signal: AbortSignal.timeout(dependencies.refreshTimeoutMilliseconds ?? DEFAULT_REFRESH_TIMEOUT_MILLISECONDS),
   });
   if (!outcome.ok) {
     report(dependencies, id, now, outcome.revoked ? "disabled" : "error", outcome.revoked ? RE_LOGIN_REQUIRED : outcome.message);
     return unusable(outcome.revoked ? RE_LOGIN_REQUIRED : outcome.message);
   }
-  const { access, refresh, expires } = outcome.tokens;
-  await secrets.set(accessSecretName(id), access);
-  if (refresh !== refreshToken) await secrets.set(refreshSecretName(id), refresh);
-  dependencies.accounts().upsert({ store: dependencies.store, account: { id, expires } });
-  return { access };
+  await storeRefreshed(dependencies, id, refreshToken, outcome.tokens);
+  if (hasCooldown(dependencies, id)) report(dependencies, id, now, "success");
+  return { access: outcome.tokens.access };
 }
 
 function isExpired(dependencies: AccountDependencies, expires: number | null | undefined, now: number): boolean {
@@ -70,8 +81,9 @@ function isExpired(dependencies: AccountDependencies, expires: number | null | u
  * Builds the token access of the plugin.
  *
  * @remarks A revoked refresh token disables the account with the reason `re-login required`, so the
- * request path moves on to the next account instead of retrying. Any other refusal cools the account
- * down briefly. An abort rejects and reports nothing.
+ * request path moves on to the next account instead of retrying. Any other failure, a timeout
+ * included, cools the account down briefly, and a later good refresh clears that cooldown. Only the
+ * caller's own abort rejects, and it reports nothing.
  *
  * @implNote Refreshes of one account share one in flight call: a rotated refresh token makes the
  * second of two concurrent refreshes with the old token fail as revoked, which would disable a

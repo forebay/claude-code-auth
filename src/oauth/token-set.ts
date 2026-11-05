@@ -31,3 +31,13 @@ export async function jsonBodyOf(response: Response): Promise<unknown> {
     return undefined;
   }
 }
+
+/** Whether a fetch rejected because an `AbortSignal.timeout` fired, as against a caller aborting. */
+export function isTimeout(cause: unknown): boolean {
+  return typeof cause === "object" && cause !== null && (cause as { name?: unknown }).name === "TimeoutError";
+}
+
+/** What a refused grant says of itself: the status and the error code, never the rest of the body, which may echo a code or token. */
+export function describeRefusal(status: number, errorCode: string | undefined): string {
+  return `the token endpoint answered ${status}${errorCode === undefined ? "" : ` (${errorCode})`}`;
+}

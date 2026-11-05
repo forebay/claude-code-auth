@@ -144,9 +144,24 @@ describe("the provider", () => {
     expect(((await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrFailure).status).toBe(501);
   });
 
-  it("names the missing accounts service when an operation needs it", async () => {
+  it("never rejects from models: a missing accounts service answers no models", async () => {
     const { provider } = await activated(null);
-    await expect(Promise.resolve(provider.models())).rejects.toThrow(/accounts service/);
+    expect(await provider.models()).toEqual({ models: [] });
+  });
+
+  it("goes on to the next account when one account cannot be read", async () => {
+    const { provider, secrets, pluginDirectory } = await activated();
+    const store = join(pluginDirectory, "accounts.json");
+    library.accounts.upsert({ store, account: { id: "broken", enabled: true, expires: Date.now() + 3_600_000 } });
+    library.accounts.upsert({ store, account: { id: "fine", enabled: true, expires: Date.now() + 3_600_000 } });
+    await secrets.set("account.fine.access", "fine-access");
+    const originalGet = secrets.get;
+    secrets.get = async (name: string) => {
+      if (name.includes(".broken.")) throw new Error("keychain locked");
+      return originalGet(name);
+    };
+    server.modelsResponder = () => ({ status: 200, body: { data: [{ id: "claude-y" }] } });
+    expect((await provider.models()).models.map((model) => model.id)).toEqual(["claude-y"]);
   });
 
   it("deactivates without throwing", async () => {

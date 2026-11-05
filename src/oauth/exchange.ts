@@ -1,6 +1,6 @@
 import { CLAUDE_REDIRECT_URI } from "../constants.js";
 import { decodeVerifier } from "./state.js";
-import { expiryOf, jsonBodyOf, objectMember, textMember } from "./token-set.js";
+import { describeRefusal, expiryOf, isTimeout, jsonBodyOf, objectMember, textMember } from "./token-set.js";
 import type { TokenSet } from "./token-set.js";
 
 export interface ExchangeRequest {
@@ -63,10 +63,11 @@ export async function exchangeCode(request: ExchangeRequest): Promise<ExchangeOu
   try {
     response = await post(request, verifier);
   } catch (cause) {
+    if (isTimeout(cause)) return failure("the token endpoint did not answer in time");
     if (request.signal?.aborted === true) throw cause;
     return failure("the token endpoint could not be reached");
   }
-  if (!response.ok) return failure(`the token endpoint answered ${response.status}`);
+  if (!response.ok) return failure(describeRefusal(response.status, textMember(await jsonBodyOf(response), "error")));
   const payload = await jsonBodyOf(response);
   return payload === undefined ? failure("the token endpoint answered a body that is not JSON") : outcomeOf(payload, request.now);
 }

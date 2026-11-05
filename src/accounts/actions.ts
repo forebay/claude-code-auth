@@ -1,5 +1,5 @@
 import type { AccessAnswer, TokenAccess } from "./access.js";
-import { accessSecretName, enabledAccounts, refreshSecretName, secretsOf, storedAccounts } from "./dependencies.js";
+import { accepted, accessSecretName, enabledAccounts, logIfRefused, refreshSecretName, secretsOf, storedAccounts } from "./dependencies.js";
 import type { AccountDependencies } from "./dependencies.js";
 import { verifyAccess } from "./verify.js";
 import type { VerifyAnswer } from "./verify.js";
@@ -19,6 +19,10 @@ export interface ListedAccount {
 }
 
 const NEVER_ABORTED = new AbortController().signal;
+
+function messageOf(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause);
+}
 
 function itemOf(input: RowInput): string | undefined {
   return typeof input.item === "string" && input.item !== "" ? input.item : undefined;
@@ -47,8 +51,8 @@ async function verifyOne(dependencies: AccountDependencies, access: TokenAccess,
   const answer: AccessAnswer = await access.ensureAccess(id, now, NEVER_ABORTED);
   if ("none" in answer) return { id, status: "failed", detail: answer.reason };
   const verdict = await verifyAccess(dependencies.settings().apiBase, answer.access);
-  if (verdict.status === "disabled") dependencies.accounts().report({ store: dependencies.store, id, outcome: "disabled", reason: "re-login required (token lacks inference scope)", now });
-  if (verdict.status === "expired") dependencies.accounts().upsert({ store: dependencies.store, account: { id, expires: now } });
+  if (verdict.status === "disabled") logIfRefused(dependencies, dependencies.accounts().report({ store: dependencies.store, id, outcome: "disabled", reason: "re-login required (token lacks inference scope)", now }), `could not disable ${id}`);
+  if (verdict.status === "expired") logIfRefused(dependencies, dependencies.accounts().upsert({ store: dependencies.store, account: { id, expires: now } }), `could not expire ${id}`);
   return { id, ...verdict };
 }
 
@@ -59,9 +63,18 @@ async function verifyOne(dependencies: AccountDependencies, access: TokenAccess,
 export function verifyAction(dependencies: AccountDependencies, access: TokenAccess): (input: RowInput) => Promise<{ results: Array<{ id: string } & VerifyAnswer> }> {
   return async (input) => {
     const results = [];
-    for (const id of targetIds(dependencies, input)) results.push(await verifyOne(dependencies, access, id));
+    for (const id of targetIds(dependencies, input)) results.push(await verifyOne(dependencies, access, id).catch((cause: unknown) => ({ id, status: "failed" as const, detail: messageOf(cause) })));
     return { results };
   };
+}
+
+async function refreshOne(dependencies: AccountDependencies, access: TokenAccess, id: string): Promise<{ id: string; refreshed: boolean; reason?: string }> {
+  try {
+    const answer = await access.refreshNow(id, dependencies.clock(), NEVER_ABORTED);
+    return "none" in answer ? { id, refreshed: false, reason: answer.reason } : { id, refreshed: true };
+  } catch (cause) {
+    return { id, refreshed: false, reason: messageOf(cause) };
+  }
 }
 
 /** The `refresh` action: forces a new access token for the row's account or for every enabled one. */
@@ -69,8 +82,7 @@ export function refreshAction(dependencies: AccountDependencies, access: TokenAc
   return async (input) => {
     const results = [];
     for (const id of targetIds(dependencies, input)) {
-      const answer = await access.refreshNow(id, dependencies.clock(), NEVER_ABORTED);
-      results.push("none" in answer ? { id, refreshed: false, reason: answer.reason } : { id, refreshed: true });
+      results.push(await refreshOne(dependencies, access, id));
     }
     return { results };
   };
@@ -82,7 +94,7 @@ export function removeAction(dependencies: AccountDependencies): (input: RowInpu
     const id = itemOf(input);
     if (id === undefined) throw new Error("remove needs an account; run it from an account's row");
     const secrets = secretsOf(dependencies);
-    const removed = dependencies.accounts().remove({ store: dependencies.store, id }).removed === true;
+    const removed = accepted(dependencies.accounts().remove({ store: dependencies.store, id }), `could not remove ${id}`).removed === true;
     await secrets.delete(accessSecretName(id));
     await secrets.delete(refreshSecretName(id));
     return { id, removed };

@@ -64,7 +64,7 @@ describe("exchangeCode", () => {
 
   it("fails, naming the status, when the endpoint refuses", async () => {
     server.tokenResponder = () => ({ status: 400, body: { error: "invalid_grant" } });
-    expect(await exchange()).toEqual({ ok: false, error: "the token endpoint answered 400" });
+    expect(await exchange()).toEqual({ ok: false, error: "the token endpoint answered 400 (invalid_grant)" });
   });
 
   it("fails on a success body that is not JSON", async () => {
@@ -80,6 +80,26 @@ describe("exchangeCode", () => {
   it("refuses a state without a verifier before reaching the endpoint", async () => {
     expect(await exchange({ state: Buffer.from("{}").toString("base64url") })).toEqual({ ok: false, error: "Missing PKCE verifier in state" });
     expect(server.requestsTo("/v1/oauth/token")).toHaveLength(0);
+  });
+
+  it("fails when the token endpoint does not answer in time", async () => {
+    server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
+    expect(await exchange({ signal: AbortSignal.timeout(50) })).toEqual({ ok: false, error: "the token endpoint did not answer in time" });
+  });
+
+  it("carries only the error code of a refusal, never the rest of its body", async () => {
+    server.tokenResponder = () => ({ status: 400, body: { error: "invalid_request", error_description: "the-code was reused" } });
+    expect(await exchange()).toEqual({ ok: false, error: "the token endpoint answered 400 (invalid_request)" });
+  });
+
+  it("fails when the token endpoint does not answer in time", async () => {
+    server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
+    expect(await exchange({ signal: AbortSignal.timeout(50) })).toEqual({ ok: false, error: "the token endpoint did not answer in time" });
+  });
+
+  it("carries only the error code of a refusal, never the rest of its body", async () => {
+    server.tokenResponder = () => ({ status: 400, body: { error: "invalid_request", error_description: "the-code was reused" } });
+    expect(await exchange()).toEqual({ ok: false, error: "the token endpoint answered 400 (invalid_request)" });
   });
 
   it("fails, without throwing, when the endpoint cannot be reached", async () => {

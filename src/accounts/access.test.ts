@@ -121,6 +121,58 @@ describe("ensureAccess", () => {
   });
 });
 
+describe("ensureAccess under failure", () => {
+  it("answers none and cools the account down when the token endpoint does not answer in time", async () => {
+    await seedAccount(world(), "a", NOW - 1);
+    world().server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
+    const access = createTokenAccess({ ...world().dependencies, refreshTimeoutMilliseconds: 50 });
+    expect(await access.ensureAccess("a", NOW, NEVER_ABORTED)).toEqual({ none: true, reason: "the token endpoint did not answer in time" });
+    expect(storedAccount("a")).toMatchObject({ enabled: true });
+    expect(storedAccount("a")?.coolingDownUntil).toBeGreaterThan(NOW);
+  });
+
+  it("writes a rotated refresh token before the access token, so a failure between them loses no spent token", async () => {
+    await seedAccount(world(), "a", NOW - 1);
+    world().server.tokenResponder = () => ({ status: 200, body: { access_token: "n", refresh_token: "rotated" } });
+    const secrets = world().secrets;
+    const failing = {
+      ...world().dependencies,
+      secrets: {
+        ...secrets,
+        set: async (name: string, value: string) => {
+          if (name.endsWith(".access")) throw new Error("keychain locked");
+          await secrets.set(name, value);
+        },
+      },
+    };
+    await expect(createTokenAccess(failing).ensureAccess("a", NOW, NEVER_ABORTED)).rejects.toThrow("keychain locked");
+    expect(secrets.entries.get("account.a.refresh")).toBe("rotated");
+  });
+
+  it("clears a cooldown an earlier failed refresh set once a refresh succeeds", async () => {
+    await seedAccount(world(), "a", NOW - 1);
+    world().library.accounts.report({ store: world().library.store, id: "a", outcome: "error", now: NOW, random: 0.5, baseMilliseconds: 60000, maxMilliseconds: 900000 });
+    expect(storedAccount("a")?.coolingDownUntil).toBeGreaterThan(NOW);
+    await createTokenAccess(world().dependencies).ensureAccess("a", NOW, NEVER_ABORTED);
+    expect(storedAccount("a")?.coolingDownUntil).toBe(0);
+  });
+
+  it("logs a refused expiry upsert with its fix and still answers the token it got", async () => {
+    await seedAccount(world(), "a", NOW - 1);
+    const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, upsert: () => ({ refused: "the store is read only", fix: "make it writable" }) }) };
+    expect(await createTokenAccess(refusing).ensureAccess("a", NOW, NEVER_ABORTED)).toEqual({ access: "access-from-refresh" });
+    expect(world().reports.join()).toMatch(/the store is read only.*make it writable/);
+  });
+
+  it("logs a refused report with its fix", async () => {
+    await seedAccount(world(), "a", NOW - 1);
+    world().server.tokenResponder = () => ({ status: 503, body: {} });
+    const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, report: () => ({ refused: "the store is read only", fix: "make it writable" }) }) };
+    expect(await createTokenAccess(refusing).ensureAccess("a", NOW, NEVER_ABORTED)).toMatchObject({ none: true });
+    expect(world().reports.join()).toMatch(/the store is read only.*make it writable/);
+  });
+});
+
 describe("refreshNow", () => {
   it("refreshes a token that is still valid", async () => {
     await seedAccount(world(), "a", NOW + HOUR);

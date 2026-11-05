@@ -81,6 +81,58 @@ describe("the verify action", () => {
   });
 });
 
+describe("one bad account", () => {
+  async function twoAccountsWithABrokenFirst() {
+    await seedAccount(world(), "a", NOW + HOUR);
+    await seedAccount(world(), "b", NOW + HOUR);
+    const secrets = world().secrets;
+    const broken = {
+      ...secrets,
+      get: async (name: string) => {
+        if (name.includes(".a.")) throw new Error("keychain locked");
+        return secrets.get(name);
+      },
+    };
+    return { ...world().dependencies, secrets: broken };
+  }
+
+  it("does not lose the other accounts' verify results", async () => {
+    const dependencies = await twoAccountsWithABrokenFirst();
+    const answer = await verifyAction(dependencies, createTokenAccess(dependencies))({});
+    expect(answer.results).toEqual([{ id: "a", status: "failed", detail: "keychain locked" }, { id: "b", status: "verified" }]);
+  });
+
+  it("does not lose the other accounts' refresh results", async () => {
+    const dependencies = await twoAccountsWithABrokenFirst();
+    const answer = await refreshAction(dependencies, createTokenAccess(dependencies))({});
+    expect(answer.results).toEqual([{ id: "a", refreshed: false, reason: "keychain locked" }, { id: "b", refreshed: true }]);
+  });
+});
+
+describe("a refusing accounts service", () => {
+  const refusal = { refused: "the store is read only", fix: "make it writable" };
+
+  it("fails remove with the cause and fix, keeping the tokens", async () => {
+    await seedAccount(world(), "a", NOW + HOUR);
+    const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, remove: () => refusal }) };
+    await expect(removeAction(refusing)({ item: "a" })).rejects.toThrow(/the store is read only.*make it writable/);
+    expect(world().secrets.entries.size).toBe(2);
+  });
+
+  it("logs a refused disable after a 403 with its fix", async () => {
+    await seedAccount(world(), "a", NOW + HOUR);
+    world().server.messagesResponder = () => ({ status: 403, body: {} });
+    const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, report: () => refusal }) };
+    await verifyAction(refusing, createTokenAccess(refusing))({ item: "a" });
+    expect(world().reports.join()).toMatch(/the store is read only.*make it writable/);
+  });
+
+  it("fails the accounts action with the cause and fix when the list is refused", () => {
+    const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, list: () => refusal }) };
+    expect(() => listAccountsAction(refusing)()).toThrow(/the store is read only.*make it writable/);
+  });
+});
+
 describe("the refresh action", () => {
   it("refreshes the row's account", async () => {
     await seedAccount(world(), "a", NOW + HOUR);

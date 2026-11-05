@@ -61,6 +61,32 @@ describe("refreshTokens", () => {
     expect(await refresh()).toMatchObject({ ok: false, revoked: false });
   });
 
+  it("answers a failure that is not a revocation when the token endpoint does not answer in time", async () => {
+    server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
+    expect(await refresh({ signal: AbortSignal.timeout(50) })).toEqual({ ok: false, revoked: false, message: "the token endpoint did not answer in time" });
+  });
+
+  it("rejects when the caller aborts, which is not a timeout", async () => {
+    server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
+    const aborter = new AbortController();
+    const running = refresh({ signal: aborter.signal });
+    aborter.abort(new Error("cancelled"));
+    await expect(running).rejects.toThrow();
+  });
+
+  it("answers a failure that is not a revocation when the token endpoint does not answer in time", async () => {
+    server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
+    expect(await refresh({ signal: AbortSignal.timeout(50) })).toEqual({ ok: false, revoked: false, message: "the token endpoint did not answer in time" });
+  });
+
+  it("rejects when the caller aborts, which is not a timeout", async () => {
+    server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
+    const aborter = new AbortController();
+    const running = refresh({ signal: aborter.signal });
+    aborter.abort(new Error("cancelled"));
+    await expect(running).rejects.toThrow();
+  });
+
   it("reports an unreachable endpoint as a failure that is not a revocation", async () => {
     const unreachable = server.url;
     await server.close();
