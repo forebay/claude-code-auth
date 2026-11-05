@@ -35,10 +35,11 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@forebay/host": "file:./siblings/host",
+    "@forebay/host": "file:./siblings/anthropic-translator/siblings/host",
     "@types/node": "22.10.2",
-    "@weivel/typescript": "file:./siblings/host/siblings/typescript",
+    "@weivel/typescript": "file:./siblings/anthropic-translator/siblings/host/siblings/typescript",
     "ajv": "8.17.1",
+    "anthropic-translator": "file:./siblings/anthropic-translator",
     "typescript": "5.7.2",
     "vitest": "3.2.7"
   }

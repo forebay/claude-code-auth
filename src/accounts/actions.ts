@@ -1,3 +1,4 @@
+import { INFERENCE_SCOPE_REASON } from "../constants.js";
 import type { AccessAnswer, TokenAccess } from "./access.js";
 import { accepted, accessSecretName, enabledAccounts, logIfRefused, refreshSecretName, secretsOf, storedAccounts } from "./dependencies.js";
 import type { AccountDependencies } from "./dependencies.js";
@@ -28,7 +29,8 @@ function itemOf(input: RowInput): string | undefined {
   return typeof input.item === "string" && input.item !== "" ? input.item : undefined;
 }
 
-function targetIds(dependencies: AccountDependencies, input: RowInput): string[] {
+/** The account the row names, else every enabled account. */
+export function targetIds(dependencies: AccountDependencies, input: RowInput): string[] {
   return itemOf(input) === undefined ? enabledAccounts(dependencies).map((account) => account.id) : [itemOf(input) as string];
 }
 
@@ -51,7 +53,7 @@ async function verifyOne(dependencies: AccountDependencies, access: TokenAccess,
   const answer: AccessAnswer = await access.ensureAccess(id, now, NEVER_ABORTED);
   if ("none" in answer) return { id, status: "failed", detail: answer.reason };
   const verdict = await verifyAccess(dependencies.settings().apiBase, answer.access);
-  if (verdict.status === "disabled") logIfRefused(dependencies, dependencies.accounts().report({ store: dependencies.store, id, outcome: "disabled", reason: "re-login required (token lacks inference scope)", now }), `could not disable ${id}`);
+  if (verdict.status === "disabled") logIfRefused(dependencies, dependencies.accounts().report({ store: dependencies.store, id, outcome: "disabled", reason: INFERENCE_SCOPE_REASON, now }), `could not disable ${id}`);
   if (verdict.status === "expired") logIfRefused(dependencies, dependencies.accounts().upsert({ store: dependencies.store, account: { id, expires: now } }), `could not expire ${id}`);
   return { id, ...verdict };
 }

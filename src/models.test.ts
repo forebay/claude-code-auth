@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { contractProblems } from "../test/contract-answers.js";
 import { startOauthServer } from "../test/fixtures/oauth-server.js";
 import type { OauthServer } from "../test/fixtures/oauth-server.js";
+import { loadVectors } from "../test/vectors.js";
 import { fetchModels } from "./models.js";
 
 let server: OauthServer;
@@ -62,4 +63,14 @@ describe("fetchModels", () => {
     expect(await fetchModels(unreachable, "a")).toEqual({ models: [] });
     server = await startOauthServer();
   });
+});
+describe("fetchModels against the Java vectors of the model mapping", () => {
+  for (const vector of loadVectors<string | null, string | null>("models", "fetchModelsMapping")) {
+    it(vector.name, async () => {
+      server.modelsResponder = () => ({ status: 200, rawBody: vector.input ?? "" });
+      const answer = await fetchModels(server.url, "a");
+      const wanted = vector.expected === null ? {} : (JSON.parse(vector.expected) as { models: Record<string, { name: string }> }).models;
+      expect(Object.fromEntries(answer.models.map((model) => [model.id, { name: model.name }]))).toEqual(wanted);
+    });
+  }
 });

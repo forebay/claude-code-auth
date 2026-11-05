@@ -44,6 +44,10 @@
       "label": "Refresh token",
       "call": { "service": "claude-code-auth:accounts", "method": "refresh" }
     },
+    "quota": {
+      "label": "Refresh quota",
+      "call": { "service": "claude-code-auth:accounts", "method": "quota" }
+    },
     "remove": {
       "label": "Remove account",
       "confirm": "Remove this account and its tokens?",

@@ -5,6 +5,7 @@ import { createTokenAccess } from "./accounts/access.js";
 import { listAccountsAction, refreshAction, removeAction, verifyAction } from "./accounts/actions.js";
 import type { AccountDependencies } from "./accounts/dependencies.js";
 import { createLoginAction } from "./accounts/login.js";
+import { quotaAction } from "./accounts/quota-action.js";
 import { createProvider } from "./provider.js";
 import { clientIdOf, readSettings } from "./settings.js";
 
@@ -42,6 +43,7 @@ const plugin: Plugin = {
       list: listAccountsAction(dependencies),
       verify: verifyAction(dependencies, access),
       refresh: refreshAction(dependencies, access),
+      quota: quotaAction(dependencies, access),
       remove: removeAction(dependencies),
     });
   },

@@ -14,6 +14,9 @@ export interface Reply {
   status: number;
   body?: unknown;
   rawBody?: string;
+  headers?: Record<string, string>;
+  /** Closes the connection without answering, which the client sees as a transport failure. */
+  destroy?: boolean;
   delayMilliseconds?: number;
 }
 
@@ -26,6 +29,7 @@ export interface OauthServer {
   tokenResponder: Responder;
   modelsResponder: Responder;
   messagesResponder: Responder;
+  usageResponder: Responder;
   requestsTo(path: string): RecordedRequest[];
   close(): Promise<void>;
 }
@@ -62,8 +66,12 @@ async function bodyOf(incoming: IncomingMessage): Promise<string> {
 }
 
 function respond(outgoing: ServerResponse, reply: Reply): void {
+  if (reply.destroy === true) {
+    outgoing.socket?.destroy();
+    return;
+  }
   const text = reply.rawBody ?? JSON.stringify(reply.body ?? {});
-  outgoing.writeHead(reply.status, { "content-type": "application/json" });
+  outgoing.writeHead(reply.status, reply.headers ?? { "content-type": "application/json" });
   outgoing.end(text);
 }
 
@@ -71,6 +79,7 @@ function responderFor(server: OauthServer, path: string): Responder {
   if (path === "/v1/oauth/token") return server.tokenResponder;
   if (path === "/v1/models") return server.modelsResponder;
   if (path === "/v1/messages") return server.messagesResponder;
+  if (path === "/api/oauth/usage") return server.usageResponder;
   return () => ({ status: 404 });
 }
 
@@ -82,6 +91,7 @@ export async function startOauthServer(): Promise<OauthServer> {
     tokenResponder: successfulGrants,
     modelsResponder: () => NO_MODELS_REPLY,
     messagesResponder: () => ACCEPTED_MESSAGE,
+    usageResponder: () => ({ status: 404 }),
     requestsTo: (path) => requests.filter((request) => request.path === path),
     close: () => Promise.resolve(),
   };

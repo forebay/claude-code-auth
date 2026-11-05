@@ -1,15 +1,11 @@
-import type { HandleIrResult, ModelsAnswer, Provider } from "@forebay/host";
+import type { ModelsAnswer, Provider } from "@forebay/host";
 import type { TokenAccess } from "./accounts/access.js";
 import { enabledAccounts } from "./accounts/dependencies.js";
 import type { AccountDependencies } from "./accounts/dependencies.js";
 import { fetchModels, NO_MODELS } from "./models.js";
+import { createHandleIr } from "./request/handle-ir.js";
 
-const NOT_PORTED_STATUS = 501;
 const ACCESS_TIMEOUT_MILLISECONDS = 30000;
-
-function notPorted(): HandleIrResult {
-  return { status: NOT_PORTED_STATUS, headers: { "content-type": "text/plain" }, body: "claude-code-auth does not serve requests yet" };
-}
 
 /** The models of the first enabled account that has a usable access token, or none. */
 async function modelsOf(dependencies: AccountDependencies, access: TokenAccess, id: string): Promise<ModelsAnswer | undefined> {
@@ -42,6 +38,6 @@ async function listModels(dependencies: AccountDependencies, access: TokenAccess
 export function createProvider(dependencies: AccountDependencies, access: TokenAccess): Provider {
   return {
     models: () => listModels(dependencies, access),
-    handleIr: notPorted,
+    handleIr: createHandleIr(dependencies, access),
   };
 }

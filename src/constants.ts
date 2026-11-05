@@ -18,3 +18,9 @@ export const ANTHROPIC_OAUTH_BETA = "oauth-2025-04-20";
 
 /** The first system block Anthropic requires on an OAuth-token request. */
 export const CLAUDE_CODE_SYSTEM = "You are Claude Code, Anthropic's official CLI for Claude.";
+
+/** Why an account is disabled when the upstream rejects its token for lacking the inference scope. */
+export const INFERENCE_SCOPE_REASON = "re-login required (token lacks inference scope)";
+
+/** Claude subscription limits are account-wide, so every request shares one lane. */
+export const MESSAGES_LANE = "messages";

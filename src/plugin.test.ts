@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import type { AccountsService, IrFailure, IrRequest, Provider } from "@forebay/host";
+import type { AccountsService, IrFailure, IrRequest, IrResponse, Provider } from "@forebay/host";
 import type { PluginContext } from "@weivel/typescript";
 import { fakeSecrets } from "../test/fake-secrets.js";
 import { startOauthServer } from "../test/fixtures/oauth-server.js";
@@ -87,7 +87,7 @@ describe("the manifest", () => {
 
   it("binds each action to a method of a service the plugin registers", async () => {
     const { registered } = await activated();
-    expect(Object.keys(MANIFEST.actions).sort()).toEqual(["accounts", "login", "refresh", "remove", "verify"]);
+    expect(Object.keys(MANIFEST.actions).sort()).toEqual(["accounts", "login", "quota", "refresh", "remove", "verify"]);
     for (const action of Object.values(MANIFEST.actions) as Array<{ call: { service: string; method: string } }>) {
       expect(MANIFEST.services.provides).toContain(action.call.service);
       expect(typeof registered.get(action.call.service)?.[action.call.method]).toBe("function");
@@ -139,9 +139,31 @@ describe("the provider", () => {
     expect((await provider.models()).models.map((model) => model.id)).toEqual(["claude-x"]);
   });
 
-  it("answers the not ported placeholder for a request until the request path exists", async () => {
+  it("answers a request through the account a login stored, with its access token", async () => {
+    const { runAction, provider } = await activated();
+    const first = (await runAction("login")) as { url: string };
+    await runAction("login", { code: `c#${new URL(first.url).searchParams.get("state")}` });
+    server.messagesResponder = () => ({ status: 200, body: { id: "msg_7", type: "message", role: "assistant", content: [{ type: "text", text: "hello" }], model: "claude-sonnet-4", stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } } });
+    const answer = (await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrResponse;
+    expect(answer).toMatchObject({ id: "msg_7", content: [{ kind: "text", text: "hello" }] });
+    expect(server.requestsTo("/v1/messages")[0]?.headers.authorization).toBe("Bearer access-from-grant");
+  });
+
+  it("answers 400 for a request before any account was added", async () => {
     const { provider } = await activated();
-    expect(((await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrFailure).status).toBe(501);
+    expect(((await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrFailure).status).toBe(400);
+    expect(server.requests).toHaveLength(0);
+  });
+
+  it("refreshes an account's quota through the quota action and keeps it in the store", async () => {
+    const { runAction, pluginDirectory } = await activated();
+    const first = (await runAction("login")) as { url: string };
+    await runAction("login", { code: `c#${new URL(first.url).searchParams.get("state")}` });
+    server.usageResponder = () => ({ status: 200, body: { limits: [{ kind: "session", percent: 25, resets_at: "2025-07-16T12:00:00Z" }] } });
+    const answer = (await runAction("quota")) as { results: Array<{ id: string; bars: unknown; hasCapacity: boolean }> };
+    expect(answer.results).toEqual([{ id: "me@example.com", bars: [{ label: "5-hour", remainingFraction: 0.75, resetTime: Date.parse("2025-07-16T12:00:00Z") }], hasCapacity: true }]);
+    const [stored] = library.accounts.list({ store: join(pluginDirectory, "accounts.json") }).accounts ?? [];
+    expect(stored?.quota).toMatchObject({ pools: { "5h": { utilization: 0.25 } } });
   });
 
   it("never rejects from models: a missing accounts service answers no models", async () => {
