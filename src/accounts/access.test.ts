@@ -67,14 +67,14 @@ describe("ensureAccess", () => {
     expect(world().server.requestsTo("/v1/oauth/token")).toHaveLength(1);
   });
 
-  it("cools the account down, without disabling it, on a refusal that is not a revocation", async () => {
+  it("reports nothing against the account on a refusal that is not a revocation", async () => {
     await seedAccount(world(), "a", NOW - 1);
     world().server.tokenResponder = () => ({ status: 503, body: {} });
     const answer = await createTokenAccess(world().dependencies).ensureAccess("a", NOW, NEVER_ABORTED);
     expect(answer).toEqual({ none: true, reason: "the token endpoint answered 503" });
     const account = storedAccount("a");
     expect(account?.enabled).toBe(true);
-    expect(account?.coolingDownUntil).toBeGreaterThan(NOW);
+    expect(account?.coolingDownUntil).toBeUndefined();
   });
 
   it("disables an account whose refresh token is missing", async () => {
@@ -114,7 +114,7 @@ describe("ensureAccess", () => {
 
   it("still answers when reporting fails, logging it", async () => {
     await seedAccount(world(), "a", NOW - 1);
-    world().server.tokenResponder = () => ({ status: 503, body: {} });
+    world().server.tokenResponder = () => ({ status: 400, body: { error: "invalid_grant" } });
     const failing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, report: () => { throw new Error("store locked"); } }) };
     expect(await createTokenAccess(failing).ensureAccess("a", NOW, NEVER_ABORTED)).toMatchObject({ none: true });
     expect(world().reports.join()).toMatch(/store locked/);
@@ -122,13 +122,13 @@ describe("ensureAccess", () => {
 });
 
 describe("ensureAccess under failure", () => {
-  it("answers none and cools the account down when the token endpoint does not answer in time", async () => {
+  it("answers none and reports nothing when the token endpoint does not answer in time", async () => {
     await seedAccount(world(), "a", NOW - 1);
     world().server.tokenResponder = () => ({ status: 200, body: {}, delayMilliseconds: 500 });
     const access = createTokenAccess({ ...world().dependencies, refreshTimeoutMilliseconds: 50 });
     expect(await access.ensureAccess("a", NOW, NEVER_ABORTED)).toEqual({ none: true, reason: "the token endpoint did not answer in time" });
     expect(storedAccount("a")).toMatchObject({ enabled: true });
-    expect(storedAccount("a")?.coolingDownUntil).toBeGreaterThan(NOW);
+    expect(storedAccount("a")?.coolingDownUntil).toBeUndefined();
   });
 
   it("writes a rotated refresh token before the access token, so a failure between them loses no spent token", async () => {
@@ -149,12 +149,14 @@ describe("ensureAccess under failure", () => {
     expect(secrets.entries.get("account.a.refresh")).toBe("rotated");
   });
 
-  it("clears a cooldown an earlier failed refresh set once a refresh succeeds", async () => {
+  it("leaves a rate limit cooldown untouched and the account unused after a good refresh", async () => {
     await seedAccount(world(), "a", NOW - 1);
-    world().library.accounts.report({ store: world().library.store, id: "a", outcome: "error", now: NOW, random: 0.5, baseMilliseconds: 60000, maxMilliseconds: 900000 });
-    expect(storedAccount("a")?.coolingDownUntil).toBeGreaterThan(NOW);
+    world().library.accounts.report({ store: world().library.store, id: "a", outcome: "rate-limited", now: NOW, resetAt: NOW + 600_000 });
+    const before = storedAccount("a");
+    expect(before?.coolingDownUntil).toBe(NOW + 600_000);
     await createTokenAccess(world().dependencies).ensureAccess("a", NOW, NEVER_ABORTED);
-    expect(storedAccount("a")?.coolingDownUntil).toBe(0);
+    expect(storedAccount("a")?.coolingDownUntil).toBe(NOW + 600_000);
+    expect(storedAccount("a")?.lastUsed).toBe(before?.lastUsed);
   });
 
   it("logs a refused expiry upsert with its fix and still answers the token it got", async () => {
@@ -166,7 +168,7 @@ describe("ensureAccess under failure", () => {
 
   it("logs a refused report with its fix", async () => {
     await seedAccount(world(), "a", NOW - 1);
-    world().server.tokenResponder = () => ({ status: 503, body: {} });
+    world().server.tokenResponder = () => ({ status: 400, body: { error: "invalid_grant" } });
     const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, report: () => ({ refused: "the store is read only", fix: "make it writable" }) }) };
     expect(await createTokenAccess(refusing).ensureAccess("a", NOW, NEVER_ABORTED)).toMatchObject({ none: true });
     expect(world().reports.join()).toMatch(/the store is read only.*make it writable/);

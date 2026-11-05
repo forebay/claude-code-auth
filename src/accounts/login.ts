@@ -66,8 +66,8 @@ async function complete(dependencies: AccountDependencies, pasted: { code: strin
   if (!exchanged.ok) throw new Error(`the sign in could not be completed: ${exchanged.error}; run login without a code for a new url`);
   const id = accountIdOf(exchanged.label, exchanged.tokens);
   const previous = await previousTokens(dependencies, id);
-  await storeTokens(dependencies, id, exchanged.tokens);
   try {
+    await storeTokens(dependencies, id, exchanged.tokens);
     return { id, label: id, outcome: upsertAccount(dependencies, id, exchanged.tokens) };
   } catch (cause) {
     await restoreTokens(dependencies, id, previous);

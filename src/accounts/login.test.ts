@@ -118,6 +118,22 @@ describe("the login action", () => {
     expect(world().secrets.entries.get("account.me@example.com.access")).toBe("access-from-grant");
   });
 
+  it("undoes the refresh token write when the access token write then fails", async () => {
+    const secrets = world().secrets;
+    const failing = {
+      ...world().dependencies,
+      secrets: {
+        ...secrets,
+        set: async (name: string, value: string) => {
+          if (name.endsWith(".access")) throw new Error("keychain locked");
+          await secrets.set(name, value);
+        },
+      },
+    };
+    await expect(createLoginAction(failing)({ code: await pastedCode() })).rejects.toThrow("keychain locked");
+    expect(secrets.entries.size).toBe(0);
+  });
+
   it("removes the tokens again when the account cannot be stored", async () => {
     const refusing = { ...world().dependencies, accounts: () => ({ ...world().library.accounts, upsert: () => { throw new Error("store is locked"); } }) };
     await expect(createLoginAction(refusing)({ code: await pastedCode() })).rejects.toThrow(/store is locked/);
