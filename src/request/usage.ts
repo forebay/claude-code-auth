@@ -71,6 +71,7 @@ async function pingPools(apiBase: string, access: string): Promise<Record<string
     body: JSON.stringify({ model: PING_MODEL, max_tokens: 1, system: [{ type: "text", text: CLAUDE_CODE_SYSTEM }], messages: [{ role: "user", content: "ping" }] }),
     signal: AbortSignal.timeout(USAGE_TIMEOUT_MILLISECONDS),
   });
+  await response.body?.cancel();
   return readPools(Object.fromEntries(response.headers.entries()));
 }
 

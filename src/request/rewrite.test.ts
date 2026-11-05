@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { anthropicTranslator } from "anthropic-translator";
+import { anthropicTranslator, WIRE_HEADERS_EXTENSION } from "anthropic-translator";
 import { loadVectors } from "../../test/vectors.js";
-import { rewrite, withIdentityBlock } from "./rewrite.js";
+import { mergeBeta, rewrite, withIdentityBlock } from "./rewrite.js";
 
 const IDENTITY = "You are Claude Code, Anthropic's official CLI for Claude.";
 const API_BASE = "http://upstream.test";
 
 interface PrepareInput {
   body: string;
+  headers: Record<string, string>;
   access: string;
 }
 
@@ -16,25 +17,39 @@ interface PrepareExpected {
   bodyJson: unknown;
 }
 
+function lowerCased(headers: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(headers).map(([name, value]) => [name.toLowerCase(), value]));
+}
+
 describe("rewrite against the Java vectors", () => {
   for (const vector of loadVectors<PrepareInput, PrepareExpected>("rewrite", "prepare")) {
     it(vector.name, () => {
-      const request = anthropicTranslator.decodeRequest(JSON.parse(vector.input.body));
+      const decoded = anthropicTranslator.decodeRequest(JSON.parse(vector.input.body));
+      const request = { ...decoded, extensions: { ...decoded.extensions, [WIRE_HEADERS_EXTENSION]: lowerCased(vector.input.headers) } };
       const rewritten = rewrite(request, vector.input.access, API_BASE);
       expect(JSON.parse(rewritten.body)).toEqual(vector.expected.bodyJson);
       expect(rewritten.url).toBe(`${API_BASE}/v1/messages`);
-      expect(rewritten.headers).toMatchObject({
-        authorization: `Bearer ${vector.input.access}`,
-        "anthropic-version": vector.expected.headers["anthropic-version"],
-        "content-type": "application/json",
-      });
+      expect(rewritten.headers).toEqual(vector.expected.headers);
     });
   }
 
-  it("sends the oauth beta alone, since a request in the IR carries no headers of the client to merge", () => {
+  it("sends the oauth beta alone when the request carries no client headers", () => {
     const request = anthropicTranslator.decodeRequest({ model: "claude-x", messages: [] });
-    expect(rewrite(request, "t", API_BASE).headers["anthropic-beta"]).toBe("oauth-2025-04-20");
+    expect(rewrite(request, "t", API_BASE).headers).toEqual({ authorization: "Bearer t", "anthropic-version": "2023-06-01", "anthropic-beta": "oauth-2025-04-20", "content-type": "application/json" });
   });
+
+  it("keeps the client headers out of the body", () => {
+    const request = { ...anthropicTranslator.decodeRequest({ model: "claude-x", messages: [] }), extensions: { [WIRE_HEADERS_EXTENSION]: { "x-app": "cli" } } };
+    expect(rewrite(request, "t", API_BASE).body).not.toContain("x-app");
+  });
+});
+
+describe("mergeBeta against the Java vectors", () => {
+  for (const vector of loadVectors<string | null, string>("rewrite", "mergeBeta")) {
+    it(vector.name, () => {
+      expect(mergeBeta(vector.input ?? undefined)).toBe(vector.expected);
+    });
+  }
 });
 
 describe("withIdentityBlock", () => {

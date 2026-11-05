@@ -68,6 +68,22 @@ describe("refreshQuota", () => {
     expect(request?.headers).toMatchObject({ authorization: "Bearer the-access", "anthropic-version": "2023-06-01", "anthropic-beta": "oauth-2025-04-20" });
   });
 
+  it("reads or cancels the body of the ping's response, so the connection is released", async () => {
+    let cancelled = false;
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: unknown) => {
+      if (String(input).endsWith("/api/oauth/usage")) return new Response("{}", { status: 404 });
+      const body = new ReadableStream({ pull: (controller) => controller.enqueue(new Uint8Array([1])), cancel: () => { cancelled = true; } });
+      return new Response(body, { status: 200 });
+    }) as typeof fetch;
+    try {
+      await refreshQuota(server.url, "the-access");
+    } finally {
+      globalThis.fetch = original;
+    }
+    expect(cancelled).toBe(true);
+  });
+
   it("falls back to a one token ping whose response headers carry the pools", async () => {
     server.messagesResponder = () => ({
       status: 200,

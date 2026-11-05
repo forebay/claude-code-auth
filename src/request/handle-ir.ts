@@ -28,6 +28,11 @@ function errorBody(message: string): string {
   return JSON.stringify({ error: { message } });
 }
 
+function allCooling(availableAt: number | undefined, now: number): IrFailure {
+  const answer = failure(503, errorBody(ALL_COOLING_MESSAGE));
+  return availableAt === undefined ? answer : { ...answer, retryAfterMilliseconds: Math.max(0, availableAt - now) };
+}
+
 function noAccount(): IrFailure {
   const body = JSON.stringify({ type: "error", error: { type: "invalid_request_error", message: NO_ACCOUNT_MESSAGE } });
   return failure(400, body, { "content-type": "application/json", "x-hub-chat-error": "1" });
@@ -51,11 +56,12 @@ async function* eventsOf(response: Response): AsyncGenerator<IrStreamEvent> {
   }
 }
 
-async function decoded(response: Response): Promise<HandleIrResult> {
+async function decoded(response: Response, signal: AbortSignal): Promise<HandleIrResult> {
   if (response.headers.get("content-type")?.includes("text/event-stream") === true && response.body !== null) return eventsOf(response);
   try {
     return anthropicTranslator.decodeResponse(JSON.parse(await response.text()));
-  } catch {
+  } catch (cause) {
+    if (signal.aborted) throw cause;
     return failure(502, errorBody("the upstream answered a body that is not a message"));
   }
 }
@@ -65,9 +71,9 @@ async function decoded(response: Response): Promise<HandleIrResult> {
  * from the `accounts` service, getting its access token, sending one request and reporting what
  * happened to that account.
  *
- * @remarks A 429 or 529 rotates, reporting the reset the response named, else an error that backs the
- * account off by its attempt. A 401 rotates, a 403 disables the account, any other status is the
- * answer as the upstream gave it. No account at all is a 400, accounts that are all cooling a 503,
+ * @remarks A 429 or 529 rotates, reporting the reset the response named, else only its attempt, which the
+ * accounts service backs the account off by. A 401 rotates, a 403 disables the account, any other status is the
+ * answer as the upstream gave it. No account at all is a 400, accounts that are all cooling a 503 saying when to retry,
  * and running out of turns answers the last real upstream failure, else a 502. A caller's abort
  * rejects at any point and reports nothing.
  */
@@ -81,12 +87,12 @@ export function createHandleIr(dependencies: AccountDependencies, access: TokenA
     }
   }
 
-  async function afterResponse(id: string, attemptNumber: number, received: Received): Promise<Turn> {
+  async function afterResponse(id: string, attemptNumber: number, received: Received, signal: AbortSignal): Promise<Turn> {
     const status = received.response.status;
     captureQuota(dependencies, id, received.headers);
     if (isRateLimitStatus(status)) {
       const resetAt = parseResetMs(received.headers, dependencies.clock());
-      reportAttempt(dependencies, id, resetAt === undefined ? { outcome: "error", attempt: attemptNumber, reason: `${status} rate limited` } : { outcome: "rate-limited", resetAt });
+      reportAttempt(dependencies, id, resetAt === undefined ? { outcome: "rate-limited", attempt: attemptNumber } : { outcome: "rate-limited", resetAt });
       return { rotated: await upstreamFailure(received) };
     }
     if (status === 401) {
@@ -99,7 +105,7 @@ export function createHandleIr(dependencies: AccountDependencies, access: TokenA
     }
     if (!received.response.ok) return { answer: await upstreamFailure(received) };
     reportAttempt(dependencies, id, { outcome: "success" });
-    return { answer: await decoded(received.response) };
+    return { answer: await decoded(received.response, signal) };
   }
 
   function acquiredAccount(acquisition: Parameters<AccountsService["acquire"]>[0]): { account: ReturnType<AccountsService["acquire"]> } | { failure: IrFailure } {
@@ -116,8 +122,10 @@ export function createHandleIr(dependencies: AccountDependencies, access: TokenA
     const acquired = acquiredAccount(acquisition);
     if ("failure" in acquired) return { answer: acquired.failure };
     const { account } = acquired;
-    if (account.none === true || account.id === undefined) return { answer: noAccount() };
-    if (account.available === false) return { answer: failure(503, errorBody(ALL_COOLING_MESSAGE)) };
+    const now = dependencies.clock();
+    if (account.none === true) return { answer: account.nextAvailableAt === undefined ? noAccount() : allCooling(account.nextAvailableAt, now) };
+    if (account.id === undefined) return { answer: noAccount() };
+    if (account.available === false) return { answer: allCooling(account.availableAt, now) };
     const id = account.id;
     const token = await ensured(id, signal);
     if ("none" in token) {
@@ -129,7 +137,7 @@ export function createHandleIr(dependencies: AccountDependencies, access: TokenA
       reportAttempt(dependencies, id, { outcome: "error", attempt: attemptNumber, reason: "transport failed" });
       return { rotated: undefined };
     }
-    return afterResponse(id, attemptNumber, attempt);
+    return afterResponse(id, attemptNumber, attempt, signal);
   }
 
   return async (request, signal) => {

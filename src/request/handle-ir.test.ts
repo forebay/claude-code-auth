@@ -45,7 +45,7 @@ function recordedReport(argument: Parameters<AccountsService["report"]>[0]): Cal
   const lane = argument.lane ?? "messages";
   switch (argument.outcome) {
     case "success": return ["manager.reportSuccess", argument.id];
-    case "rate-limited": return ["manager.reportRateLimit", argument.id, lane, argument.resetAt];
+    case "rate-limited": return argument.resetAt === undefined ? ["manager.reportRateLimit", argument.id, lane, "backoff", argument.attempt] : ["manager.reportRateLimit", argument.id, lane, argument.resetAt];
     case "error": return ["manager.reportError", argument.id, lane, argument.attempt, argument.reason === "transport failed" ? TRANSPORT_FAILED : argument.reason];
     case "disabled": return ["manager.disable", argument.id, argument.reason];
     default: return ["manager.captureQuota", argument.id, (argument.quota as { pools: unknown }).pools];
@@ -106,7 +106,7 @@ function handleIrFor(scenario: Scenario, overrides: Record<string, unknown> = {}
   return createHandleIr(dependenciesFor(accounts, overrides), scriptedAccess(scenario.acquire));
 }
 
-/** The oracle's calls in the vocabulary of the accounts service: no proxy pool, one disable, quota captured, a header-less limit backed off as an error. */
+/** The oracle's calls in the vocabulary of the accounts service: no proxy pool, one disable, quota captured, a header-less limit backed off by its attempt. */
 function expectedCalls(scenario: Scenario, oracle: Oracle): Call[] {
   if (scenario.calls !== undefined) return scenario.calls;
   const expected: Call[] = [];
@@ -119,7 +119,7 @@ function expectedCalls(scenario: Scenario, oracle: Oracle): Call[] {
       expected.push(snapshot.cachedQuota === undefined ? ["manager.disable", call[1], snapshot.disabledReason] : ["manager.captureQuota", call[1], snapshot.cachedQuota.pools]);
     } else if (kind === "manager.reportRateLimit" && scenario.headerless !== undefined) {
       const attempt = expected.filter((entry) => entry[0] === "manager.acquire").length - 1;
-      expected.push(["manager.reportError", call[1], call[2], attempt, `${scenario.headerless} rate limited`]);
+      expected.push(["manager.reportRateLimit", call[1], call[2], "backoff", attempt]);
     } else {
       expected.push(call);
     }
@@ -202,6 +202,22 @@ describe("the request path beyond the oracle", () => {
     const seen: string[] = [];
     for await (const event of result) seen.push(event.event);
     expect(seen).toEqual(["message_start", "content_block_start", "text_delta", "content_block_stop", "message_delta", "message_stop"]);
+  });
+
+  it("answers a 503 carrying when to retry for accounts that are all cooling, however the service says so", async () => {
+    const cooling = handleIrFor({ name: "x", accounts: [], acquire: ["cooling"], upstream: [] });
+    expect(await cooling(REQUEST, NEVER_ABORTED)).toMatchObject({ status: 503, retryAfterMilliseconds: 60000 });
+    const accounts = { acquire: () => ({ none: true, nextAvailableAt: NOW + 5000 }) } as unknown as AccountsService;
+    const none = await createHandleIr(dependenciesFor(accounts), scriptedAccess([]))(REQUEST, NEVER_ABORTED);
+    expect(none).toMatchObject({ status: 503, retryAfterMilliseconds: 5000 });
+  });
+
+  it("answers an abort while the 2xx body is being read as an abort, not as a body that is not a message", async () => {
+    const handle = handleIrFor({ name: "x", accounts: [], acquire: twoAccounts, upstream: [{ status: 200, stall: true, headers: { "content-type": "application/json" } }] });
+    const aborter = new AbortController();
+    const running = handle(REQUEST, aborter.signal);
+    setTimeout(() => aborter.abort(new Error("client went away")), 100);
+    await expect(running).rejects.toThrow();
   });
 
   it("answers a 502 for a 2xx body that is not a message", async () => {

@@ -17,6 +17,8 @@ export interface Reply {
   headers?: Record<string, string>;
   /** Closes the connection without answering, which the client sees as a transport failure. */
   destroy?: boolean;
+  /** Sends the status and the start of the body, then never finishes it. */
+  stall?: boolean;
   delayMilliseconds?: number;
 }
 
@@ -68,6 +70,11 @@ async function bodyOf(incoming: IncomingMessage): Promise<string> {
 function respond(outgoing: ServerResponse, reply: Reply): void {
   if (reply.destroy === true) {
     outgoing.socket?.destroy();
+    return;
+  }
+  if (reply.stall === true) {
+    outgoing.writeHead(reply.status, reply.headers ?? { "content-type": "application/json" });
+    outgoing.write("{");
     return;
   }
   const text = reply.rawBody ?? JSON.stringify(reply.body ?? {});
