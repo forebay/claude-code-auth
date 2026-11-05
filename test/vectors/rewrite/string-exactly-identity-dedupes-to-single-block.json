@@ -1,0 +1,33 @@
+{
+  "name": "string-exactly-identity-dedupes-to-single-block",
+  "fn": "prepare",
+  "input": {
+    "url": "/v1/messages",
+    "method": "POST",
+    "headers": {},
+    "access": "acc-token",
+    "body": "{\"model\":\"claude-x\",\"messages\":[],\"system\":\"You are Claude Code, Anthropic's official CLI for Claude.\"}"
+  },
+  "expected": {
+    "request": "https://api.anthropic.com/v1/messages",
+    "method": "POST",
+    "headers": {
+      "authorization": "Bearer acc-token",
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "oauth-2025-04-20",
+      "content-type": "application/json"
+    },
+    "bodyJson": {
+      "model": "claude-x",
+      "system": [
+        {
+          "type": "text",
+          "text": "You are Claude Code, Anthropic's official CLI for Claude."
+        }
+      ],
+      "messages": [],
+      "stream": false
+    },
+    "streaming": false
+  }
+}

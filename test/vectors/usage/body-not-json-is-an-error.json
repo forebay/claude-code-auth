@@ -1,0 +1,13 @@
+{
+  "name": "body-not-json-is-an-error",
+  "fn": "usage",
+  "input": {
+    "status": 200,
+    "body": "<html>"
+  },
+  "expected": {
+    "status": "error",
+    "bars": [],
+    "pools": null
+  }
+}

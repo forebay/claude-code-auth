@@ -1,0 +1,11 @@
+{
+  "name": "header-names-are-case-insensitive",
+  "fn": "parseResetMs",
+  "input": {
+    "headers": {
+      "Retry-After": "10"
+    },
+    "now": 1000
+  },
+  "expected": 11000
+}

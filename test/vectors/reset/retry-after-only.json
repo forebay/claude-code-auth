@@ -1,0 +1,11 @@
+{
+  "name": "retry-after-only",
+  "fn": "parseResetMs",
+  "input": {
+    "headers": {
+      "retry-after": "42"
+    },
+    "now": 9000
+  },
+  "expected": 51000
+}

@@ -1,0 +1,6 @@
+{
+  "name": "bucket-null-limit-is-null",
+  "fn": "bucketOfLimit",
+  "input": null,
+  "expected": null
+}

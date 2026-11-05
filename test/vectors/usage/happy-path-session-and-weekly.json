@@ -1,0 +1,33 @@
+{
+  "name": "happy-path-session-and-weekly",
+  "fn": "usage",
+  "input": {
+    "status": 200,
+    "body": "{\"limits\":[{\"kind\":\"session\",\"percent\":18,\"resets_at\":\"2025-07-16T12:00:00Z\"},{\"kind\":\"weekly_all\",\"percent\":95,\"resets_at\":\"2025-07-20T00:00:00Z\"}]}"
+  },
+  "expected": {
+    "status": "active",
+    "bars": [
+      {
+        "label": "5-hour",
+        "remainingFraction": 0.8200000000000001,
+        "resetTime": "2025-07-16T12:00:00Z"
+      },
+      {
+        "label": "7-day",
+        "remainingFraction": 0.050000000000000044,
+        "resetTime": "2025-07-20T00:00:00Z"
+      }
+    ],
+    "pools": {
+      "5h": {
+        "utilization": 0.18,
+        "reset": 1752667200000
+      },
+      "7d": {
+        "utilization": 0.95,
+        "reset": 1752969600000
+      }
+    }
+  }
+}

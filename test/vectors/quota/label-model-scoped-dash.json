@@ -1,0 +1,6 @@
+{
+  "name": "label-model-scoped-dash",
+  "fn": "poolLabel",
+  "input": "7d-fable",
+  "expected": "7-day (Fable)"
+}

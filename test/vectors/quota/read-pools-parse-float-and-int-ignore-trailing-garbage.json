@@ -1,0 +1,14 @@
+{
+  "name": "read-pools-parse-float-and-int-ignore-trailing-garbage",
+  "fn": "readPools",
+  "input": {
+    "anthropic-ratelimit-unified-5h-utilization": "0.5xyz",
+    "anthropic-ratelimit-unified-5h-reset": "100abc"
+  },
+  "expected": {
+    "5h": {
+      "utilization": 0.5,
+      "reset": 100000
+    }
+  }
+}

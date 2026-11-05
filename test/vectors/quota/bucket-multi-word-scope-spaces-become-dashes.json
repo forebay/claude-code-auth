@@ -1,0 +1,13 @@
+{
+  "name": "bucket-multi-word-scope-spaces-become-dashes",
+  "fn": "bucketOfLimit",
+  "input": {
+    "group": "weekly",
+    "scope": {
+      "model": {
+        "display_name": "Fable Pro"
+      }
+    }
+  },
+  "expected": "7d-fable-pro"
+}

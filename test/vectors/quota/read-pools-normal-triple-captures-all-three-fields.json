@@ -1,0 +1,16 @@
+{
+  "name": "read-pools-normal-triple-captures-all-three-fields",
+  "fn": "readPools",
+  "input": {
+    "Anthropic-Ratelimit-Unified-5h-Utilization": "0.42",
+    "anthropic-ratelimit-unified-5h-reset": "1720000000",
+    "anthropic-ratelimit-unified-5h-status": "allowed"
+  },
+  "expected": {
+    "5h": {
+      "utilization": 0.42,
+      "reset": 1720000000000,
+      "status": "allowed"
+    }
+  }
+}

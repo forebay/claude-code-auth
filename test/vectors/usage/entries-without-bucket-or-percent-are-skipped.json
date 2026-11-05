@@ -1,0 +1,23 @@
+{
+  "name": "entries-without-bucket-or-percent-are-skipped",
+  "fn": "usage",
+  "input": {
+    "status": 200,
+    "body": "{\"limits\":[{\"percent\":10},{\"kind\":\"session\"},{\"kind\":\"session\",\"percent\":20,\"resets_at\":\"not a date\"}]}"
+  },
+  "expected": {
+    "status": "active",
+    "bars": [
+      {
+        "label": "5-hour",
+        "remainingFraction": 0.8,
+        "resetTime": null
+      }
+    ],
+    "pools": {
+      "5h": {
+        "utilization": 0.2
+      }
+    }
+  }
+}

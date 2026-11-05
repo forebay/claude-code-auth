@@ -1,0 +1,6 @@
+{
+  "name": "filters-non-claude-and-names-with-display-name-or-id",
+  "fn": "fetchModelsMapping",
+  "input": "{\"data\":[{\"id\":\"claude-opus-4-1\",\"display_name\":\"Claude Opus 4.1\"},{\"id\":\"gpt-4\",\"display_name\":\"GPT-4\"},{\"id\":\"claude-haiku-4-5\"},{\"id\":\"\"},null]}",
+  "expected": "{\"models\":{\"claude-opus-4-1\":{\"name\":\"Claude Opus 4.1 (Claude Code)\"},\"claude-haiku-4-5\":{\"name\":\"claude-haiku-4-5 (Claude Code)\"}}}"
+}

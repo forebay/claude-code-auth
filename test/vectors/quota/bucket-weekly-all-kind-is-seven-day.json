@@ -1,0 +1,8 @@
+{
+  "name": "bucket-weekly-all-kind-is-seven-day",
+  "fn": "bucketOfLimit",
+  "input": {
+    "kind": "weekly_all"
+  },
+  "expected": "7d"
+}

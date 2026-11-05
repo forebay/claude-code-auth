@@ -1,0 +1,11 @@
+{
+  "name": "negative-unified-reset-and-no-retry-after-is-null",
+  "fn": "parseResetMs",
+  "input": {
+    "headers": {
+      "anthropic-ratelimit-unified-reset": "-5"
+    },
+    "now": 0
+  },
+  "expected": null
+}

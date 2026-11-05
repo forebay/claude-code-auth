@@ -1,0 +1,8 @@
+{
+  "name": "has-quota-cached-quota-without-pools",
+  "fn": "accountHasQuota",
+  "input": {
+    "cachedQuota": {}
+  },
+  "expected": false
+}

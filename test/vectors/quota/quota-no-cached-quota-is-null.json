@@ -1,0 +1,6 @@
+{
+  "name": "quota-no-cached-quota-is-null",
+  "fn": "claudeQuota",
+  "input": {},
+  "expected": null
+}

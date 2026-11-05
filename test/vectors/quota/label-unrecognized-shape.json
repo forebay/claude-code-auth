@@ -1,0 +1,6 @@
+{
+  "name": "label-unrecognized-shape",
+  "fn": "poolLabel",
+  "input": "custom_x",
+  "expected": "custom_x"
+}

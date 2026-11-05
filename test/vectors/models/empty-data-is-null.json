@@ -1,0 +1,6 @@
+{
+  "name": "empty-data-is-null",
+  "fn": "fetchModelsMapping",
+  "input": "{\"data\":[]}",
+  "expected": null
+}

@@ -1,0 +1,14 @@
+{
+  "name": "bucket-weekly-group-prefers-display-name-over-id",
+  "fn": "bucketOfLimit",
+  "input": {
+    "group": "weekly",
+    "scope": {
+      "model": {
+        "display_name": "Fable",
+        "id": "claude-fable"
+      }
+    }
+  },
+  "expected": "7d-fable"
+}

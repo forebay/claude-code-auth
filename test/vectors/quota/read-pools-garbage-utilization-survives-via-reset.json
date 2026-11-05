@@ -1,0 +1,13 @@
+{
+  "name": "read-pools-garbage-utilization-survives-via-reset",
+  "fn": "readPools",
+  "input": {
+    "anthropic-ratelimit-unified-7d-utilization": "notanumber",
+    "anthropic-ratelimit-unified-7d-reset": "1000"
+  },
+  "expected": {
+    "7d": {
+      "reset": 1000000
+    }
+  }
+}

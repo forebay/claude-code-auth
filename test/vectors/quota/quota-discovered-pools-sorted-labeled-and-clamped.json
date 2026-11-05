@@ -1,0 +1,30 @@
+{
+  "name": "quota-discovered-pools-sorted-labeled-and-clamped",
+  "fn": "claudeQuota",
+  "input": {
+    "cachedQuota": {
+      "pools": {
+        "7d": {
+          "utilization": 1,
+          "reset": 456000
+        },
+        "5h": {
+          "utilization": 0.2,
+          "reset": 123000
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "label": "5-hour",
+      "remainingFraction": 0.8,
+      "resetTime": 123000
+    },
+    {
+      "label": "7-day",
+      "remainingFraction": 0,
+      "resetTime": 456000
+    }
+  ]
+}

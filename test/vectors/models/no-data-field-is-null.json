@@ -1,0 +1,6 @@
+{
+  "name": "no-data-field-is-null",
+  "fn": "fetchModelsMapping",
+  "input": "{}",
+  "expected": null
+}

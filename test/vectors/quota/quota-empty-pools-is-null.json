@@ -1,0 +1,10 @@
+{
+  "name": "quota-empty-pools-is-null",
+  "fn": "claudeQuota",
+  "input": {
+    "cachedQuota": {
+      "pools": {}
+    }
+  },
+  "expected": null
+}

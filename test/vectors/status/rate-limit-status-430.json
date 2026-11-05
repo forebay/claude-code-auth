@@ -1,0 +1,6 @@
+{
+  "name": "rate-limit-status-430",
+  "fn": "isRateLimitStatus",
+  "input": 430,
+  "expected": false
+}

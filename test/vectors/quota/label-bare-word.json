@@ -1,0 +1,6 @@
+{
+  "name": "label-bare-word",
+  "fn": "poolLabel",
+  "input": "weekly",
+  "expected": "weekly"
+}

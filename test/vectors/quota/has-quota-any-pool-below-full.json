@@ -1,0 +1,14 @@
+{
+  "name": "has-quota-any-pool-below-full",
+  "fn": "accountHasQuota",
+  "input": {
+    "cachedQuota": {
+      "pools": {
+        "5h": {
+          "utilization": 0.5
+        }
+      }
+    }
+  },
+  "expected": true
+}

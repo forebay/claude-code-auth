@@ -1,0 +1,12 @@
+{
+  "name": "unified-reset-garbage-falls-through-to-retry-after",
+  "fn": "parseResetMs",
+  "input": {
+    "headers": {
+      "anthropic-ratelimit-unified-reset": "abc",
+      "retry-after": "15"
+    },
+    "now": 1000
+  },
+  "expected": 16000
+}

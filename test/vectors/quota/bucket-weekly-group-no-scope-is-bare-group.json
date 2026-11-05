@@ -1,0 +1,8 @@
+{
+  "name": "bucket-weekly-group-no-scope-is-bare-group",
+  "fn": "bucketOfLimit",
+  "input": {
+    "group": "weekly"
+  },
+  "expected": "weekly"
+}

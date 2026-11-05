@@ -1,0 +1,8 @@
+{
+  "name": "read-pools-status-only-pool-dropped",
+  "fn": "readPools",
+  "input": {
+    "anthropic-ratelimit-unified-7d-status": "allowed"
+  },
+  "expected": {}
+}

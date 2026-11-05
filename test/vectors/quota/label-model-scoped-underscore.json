@@ -1,0 +1,6 @@
+{
+  "name": "label-model-scoped-underscore",
+  "fn": "poolLabel",
+  "input": "7d_fable",
+  "expected": "7-day (Fable)"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "unified-reset-header-used-directly",
+  "fn": "parseResetMs",
+  "input": {
+    "headers": {
+      "anthropic-ratelimit-unified-reset": "1700000000"
+    },
+    "now": 0
+  },
+  "expected": 1700000000000
+}

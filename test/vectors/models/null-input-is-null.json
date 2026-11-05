@@ -1,0 +1,6 @@
+{
+  "name": "null-input-is-null",
+  "fn": "fetchModelsMapping",
+  "input": null,
+  "expected": null
+}

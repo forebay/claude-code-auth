@@ -1,0 +1,25 @@
+{
+  "name": "model-scoped-weekly-with-severity",
+  "fn": "usage",
+  "input": {
+    "status": 200,
+    "body": "{\"limits\":[{\"group\":\"weekly\",\"percent\":50,\"severity\":\"warning\",\"scope\":{\"model\":{\"display_name\":\"Fable Pro\"}},\"resets_at\":\"2025-07-20T00:00:00+02:00\"}]}"
+  },
+  "expected": {
+    "status": "active",
+    "bars": [
+      {
+        "label": "7-day (Fable-pro)",
+        "remainingFraction": 0.5,
+        "resetTime": "2025-07-19T22:00:00Z"
+      }
+    ],
+    "pools": {
+      "7d-fable-pro": {
+        "utilization": 0.5,
+        "reset": 1752962400000,
+        "status": "warning"
+      }
+    }
+  }
+}

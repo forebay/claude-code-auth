@@ -1,0 +1,8 @@
+{
+  "name": "bucket-unrecognized-kind-passes-through",
+  "fn": "bucketOfLimit",
+  "input": {
+    "kind": "custom_x"
+  },
+  "expected": "custom_x"
+}

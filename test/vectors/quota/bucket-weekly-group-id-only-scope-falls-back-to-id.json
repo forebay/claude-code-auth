@@ -1,0 +1,13 @@
+{
+  "name": "bucket-weekly-group-id-only-scope-falls-back-to-id",
+  "fn": "bucketOfLimit",
+  "input": {
+    "group": "weekly",
+    "scope": {
+      "model": {
+        "id": "claude-fable"
+      }
+    }
+  },
+  "expected": "7d-claude-fable"
+}

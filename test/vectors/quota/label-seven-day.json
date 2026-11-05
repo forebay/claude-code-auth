@@ -1,0 +1,6 @@
+{
+  "name": "label-seven-day",
+  "fn": "poolLabel",
+  "input": "7d",
+  "expected": "7-day"
+}

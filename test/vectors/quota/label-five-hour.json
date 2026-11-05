@@ -1,0 +1,6 @@
+{
+  "name": "label-five-hour",
+  "fn": "poolLabel",
+  "input": "5h",
+  "expected": "5-hour"
+}

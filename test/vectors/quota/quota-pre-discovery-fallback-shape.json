@@ -1,0 +1,26 @@
+{
+  "name": "quota-pre-discovery-fallback-shape",
+  "fn": "claudeQuota",
+  "input": {
+    "cachedQuota": {
+      "fiveHour": {
+        "utilization": 0.4
+      },
+      "sevenDay": {
+        "utilization": 0.6
+      }
+    }
+  },
+  "expected": [
+    {
+      "label": "5-hour",
+      "remainingFraction": 0.6,
+      "resetTime": null
+    },
+    {
+      "label": "7-day",
+      "remainingFraction": 0.4,
+      "resetTime": null
+    }
+  ]
+}

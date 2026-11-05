@@ -1,0 +1,13 @@
+{
+  "name": "body-without-limits-is-an-error",
+  "fn": "usage",
+  "input": {
+    "status": 200,
+    "body": "{}"
+  },
+  "expected": {
+    "status": "error",
+    "bars": [],
+    "pools": null
+  }
+}

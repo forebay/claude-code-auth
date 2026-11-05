@@ -1,0 +1,6 @@
+{
+  "name": "read-pools-no-headers",
+  "fn": "readPools",
+  "input": {},
+  "expected": {}
+}

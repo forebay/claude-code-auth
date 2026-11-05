@@ -1,0 +1,12 @@
+{
+  "name": "unified-reset-zero-falls-through-to-retry-after",
+  "fn": "parseResetMs",
+  "input": {
+    "headers": {
+      "anthropic-ratelimit-unified-reset": "0",
+      "retry-after": "30"
+    },
+    "now": 5000000
+  },
+  "expected": 5030000
+}

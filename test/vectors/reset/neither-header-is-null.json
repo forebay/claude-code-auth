@@ -1,0 +1,9 @@
+{
+  "name": "neither-header-is-null",
+  "fn": "parseResetMs",
+  "input": {
+    "headers": {},
+    "now": 0
+  },
+  "expected": null
+}

@@ -1,0 +1,43 @@
+{
+  "name": "post-json-rewrites-headers-and-injects-system-block",
+  "fn": "prepare",
+  "input": {
+    "url": "/v1/messages",
+    "method": "POST",
+    "headers": {
+      "X-Api-Key": "sk-1",
+      "Host": "example.com",
+      "Content-Length": "10",
+      "Accept-Encoding": "gzip",
+      "Anthropic-Beta": "custom-beta"
+    },
+    "access": "acc-token-1",
+    "body": "{\"model\":\"claude-x\",\"stream\":true,\"system\":\"hi\",\"messages\":[]}"
+  },
+  "expected": {
+    "request": "https://api.anthropic.com/v1/messages",
+    "method": "POST",
+    "headers": {
+      "anthropic-beta": "custom-beta,oauth-2025-04-20",
+      "authorization": "Bearer acc-token-1",
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json"
+    },
+    "bodyJson": {
+      "model": "claude-x",
+      "system": [
+        {
+          "type": "text",
+          "text": "You are Claude Code, Anthropic's official CLI for Claude."
+        },
+        {
+          "type": "text",
+          "text": "hi"
+        }
+      ],
+      "messages": [],
+      "stream": true
+    },
+    "streaming": true
+  }
+}

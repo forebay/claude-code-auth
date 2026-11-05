@@ -1,0 +1,24 @@
+{
+  "name": "quota-pool-missing-utilization-skipped",
+  "fn": "claudeQuota",
+  "input": {
+    "cachedQuota": {
+      "pools": {
+        "5h": {
+          "reset": 123000
+        },
+        "7d": {
+          "utilization": 0.3,
+          "reset": 456000
+        }
+      }
+    }
+  },
+  "expected": [
+    {
+      "label": "7-day",
+      "remainingFraction": 0.7,
+      "resetTime": 456000
+    }
+  ]
+}

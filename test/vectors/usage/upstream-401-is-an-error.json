@@ -1,0 +1,13 @@
+{
+  "name": "upstream-401-is-an-error",
+  "fn": "usage",
+  "input": {
+    "status": 401,
+    "body": "{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\"}}"
+  },
+  "expected": {
+    "status": "error",
+    "bars": [],
+    "pools": null
+  }
+}

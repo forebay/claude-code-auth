@@ -1,0 +1,8 @@
+{
+  "name": "read-pools-bucketless-unified-reset-header-ignored",
+  "fn": "readPools",
+  "input": {
+    "anthropic-ratelimit-unified-reset": "123"
+  },
+  "expected": {}
+}

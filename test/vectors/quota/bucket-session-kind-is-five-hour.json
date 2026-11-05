@@ -1,0 +1,8 @@
+{
+  "name": "bucket-session-kind-is-five-hour",
+  "fn": "bucketOfLimit",
+  "input": {
+    "kind": "session"
+  },
+  "expected": "5h"
+}
