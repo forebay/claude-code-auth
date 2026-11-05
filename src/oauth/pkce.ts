@@ -12,7 +12,7 @@ export interface Pkce {
  * base64url of the SHA-256 of the verifier's UTF-8 text.
  *
  * @implNote The challenge hashes the verifier STRING, not the random bytes behind it, which is what
- * `@openauthjs/openauth`'s `generatePKCE` did and what the token endpoint was verified against.
+ * the token endpoint verifies against.
  */
 export function createPkce(entropy: (size: number) => Buffer = randomBytes): Pkce {
   const verifier = entropy(VERIFIER_BYTES).toString("base64url");
