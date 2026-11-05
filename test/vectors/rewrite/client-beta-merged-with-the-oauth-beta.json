@@ -1,0 +1,35 @@
+{
+  "name": "client-beta-merged-with-the-oauth-beta",
+  "fn": "prepare",
+  "input": {
+    "url": "/v1/messages",
+    "method": "POST",
+    "headers": {
+      "Anthropic-Beta": "interleaved-thinking-2025-05-14,claude-code-20250219"
+    },
+    "access": "acc-token",
+    "body": "{\"model\":\"claude-x\",\"messages\":[]}"
+  },
+  "expected": {
+    "request": "https://api.anthropic.com/v1/messages",
+    "method": "POST",
+    "headers": {
+      "anthropic-beta": "interleaved-thinking-2025-05-14,claude-code-20250219,oauth-2025-04-20",
+      "authorization": "Bearer acc-token",
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json"
+    },
+    "bodyJson": {
+      "model": "claude-x",
+      "system": [
+        {
+          "type": "text",
+          "text": "You are Claude Code, Anthropic's official CLI for Claude."
+        }
+      ],
+      "messages": [],
+      "stream": false
+    },
+    "streaming": false
+  }
+}

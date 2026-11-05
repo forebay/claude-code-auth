@@ -1,0 +1,6 @@
+{
+  "name": "merge-beta-new-value-appends",
+  "fn": "mergeBeta",
+  "input": "some-other-beta",
+  "expected": "some-other-beta,oauth-2025-04-20"
+}

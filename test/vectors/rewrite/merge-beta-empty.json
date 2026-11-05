@@ -1,0 +1,6 @@
+{
+  "name": "merge-beta-empty",
+  "fn": "mergeBeta",
+  "input": "",
+  "expected": "oauth-2025-04-20"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "merge-beta-substring-match-unchanged",
+  "fn": "mergeBeta",
+  "input": "foo-oauth-2025-04-20-bar",
+  "expected": "foo-oauth-2025-04-20-bar"
+}

@@ -1,0 +1,43 @@
+{
+  "name": "client-headers-kept-except-the-stripped-ones",
+  "fn": "prepare",
+  "input": {
+    "url": "/v1/messages",
+    "method": "POST",
+    "headers": {
+      "User-Agent": "claude-cli/2.0",
+      "X-App": "cli",
+      "X-Api-Key": "sk-1",
+      "Host": "example.com",
+      "Content-Length": "10",
+      "Accept-Encoding": "gzip",
+      "Content-Type": "text/plain"
+    },
+    "access": "acc-token",
+    "body": "{\"model\":\"claude-x\",\"messages\":[]}"
+  },
+  "expected": {
+    "request": "https://api.anthropic.com/v1/messages",
+    "method": "POST",
+    "headers": {
+      "user-agent": "claude-cli/2.0",
+      "x-app": "cli",
+      "content-type": "application/json",
+      "authorization": "Bearer acc-token",
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "oauth-2025-04-20"
+    },
+    "bodyJson": {
+      "model": "claude-x",
+      "system": [
+        {
+          "type": "text",
+          "text": "You are Claude Code, Anthropic's official CLI for Claude."
+        }
+      ],
+      "messages": [],
+      "stream": false
+    },
+    "streaming": false
+  }
+}
