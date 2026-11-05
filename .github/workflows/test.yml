@@ -4,12 +4,18 @@ on: [push, pull_request, workflow_dispatch]
 
 permissions:
   contents: read
-  packages: read
 
 jobs:
   test:
     uses: intisy/workflows/.github/workflows/test.yml@main
     with:
-      gradle_test: check
-    secrets:
-      envPAT: ${{ secrets.PAT }}
+      toolchains: node
+      runners: '["ubuntu-latest","windows-latest","macos-latest"]'
+      extra_repositories: |
+        forebay/host siblings/host 2932daa9090fdf8c45dee5c19b62b260fb406f94
+        weivel/model siblings/host/siblings/model 606988fb178b04d3f53835e6d982c09f31081ef1
+        weivel/typescript siblings/host/siblings/typescript 46bf872abbfcfe164294a9b3daa40fa0c26fff77
+        forebay/library siblings/library 692a613a493ec43aaa1099a28eee74ffe0e3e567
+      node_install: npm ci --prefix siblings/host/siblings/model && npm ci --prefix siblings/host/siblings/typescript && npm ci --prefix siblings/host && npm ci
+      node_build: cmake -S siblings/library -B siblings/library/build && cmake --build siblings/library/build --config Release --target apps && npm run build --prefix siblings/host/siblings/typescript && npm run build --prefix siblings/host && npm run build
+      node_test: npm test
