@@ -2,10 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { startOauthServer } from "../../test/fixtures/oauth-server.js";
 import type { OauthServer } from "../../test/fixtures/oauth-server.js";
 import { exchangeCode } from "./exchange.js";
-import { encodeState } from "./state.js";
 
 const NOW = 1_000;
-const STATE = encodeState("the-verifier");
+const STATE = "the-state";
 
 let server: OauthServer;
 
@@ -18,10 +17,10 @@ afterEach(async () => {
 });
 
 const exchange = (overrides: Partial<Parameters<typeof exchangeCode>[0]> = {}) =>
-  exchangeCode({ tokenUrl: `${server.url}/v1/oauth/token`, clientId: "client-123", code: "the-code", state: STATE, now: NOW, ...overrides });
+  exchangeCode({ tokenUrl: `${server.url}/v1/oauth/token`, clientId: "client-123", code: "the-code", state: STATE, verifier: "the-verifier", now: NOW, ...overrides });
 
 describe("exchangeCode", () => {
-  it("sends the authorization code grant as JSON, with the verifier from the state and the state itself", async () => {
+  it("sends the authorization code grant as JSON, with the verifier and the state it is given", async () => {
     await exchange();
     const [request] = server.requestsTo("/v1/oauth/token");
     expect(request?.method).toBe("POST");
@@ -75,11 +74,6 @@ describe("exchangeCode", () => {
   it("fails without a refresh token in the response", async () => {
     server.tokenResponder = () => ({ status: 200, body: { access_token: "at-only" } });
     expect(await exchange()).toEqual({ ok: false, error: "missing refresh token in response" });
-  });
-
-  it("refuses a state without a verifier before reaching the endpoint", async () => {
-    expect(await exchange({ state: Buffer.from("{}").toString("base64url") })).toEqual({ ok: false, error: "Missing PKCE verifier in state" });
-    expect(server.requestsTo("/v1/oauth/token")).toHaveLength(0);
   });
 
   it("fails when the token endpoint does not answer in time", async () => {

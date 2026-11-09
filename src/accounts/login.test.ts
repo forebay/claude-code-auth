@@ -1,7 +1,7 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { NOW, useWorld } from "../../test/world.js";
-import { decodeVerifier } from "../oauth/state.js";
 import { createLoginAction } from "./login.js";
 
 const world = useWorld();
@@ -10,20 +10,26 @@ function storeText(): string {
   return readFileSync(world().library.store, "utf8");
 }
 
-async function pastedCode(): Promise<string> {
+async function startedUrl(): Promise<URL> {
   const answer = (await createLoginAction(world().dependencies)({})) as { url: string };
-  const state = new URL(answer.url).searchParams.get("state") as string;
-  return `the-code#${state}`;
+  return new URL(answer.url);
+}
+
+async function pastedCode(): Promise<string> {
+  return `the-code#${(await startedUrl()).searchParams.get("state")}`;
+}
+
+function pendingLogin(): { state: string; verifier: string } {
+  return JSON.parse(world().secrets.entries.get("login.pending") as string);
 }
 
 describe("the login action", () => {
-  it("answers the authorize url with the state carrying a verifier when given no code", async () => {
+  it("answers the authorize url when given no code", async () => {
     const answer = (await createLoginAction(world().dependencies)({})) as { url: string; next: string };
     const url = new URL(answer.url);
     expect(`${url.origin}${url.pathname}`).toBe(`${world().server.url}/oauth/authorize`);
     expect(url.searchParams.get("client_id")).toBe("client-under-test");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
-    expect(decodeVerifier(url.searchParams.get("state") as string)).not.toBe("");
     expect(answer.next).toContain("code#state");
     expect(world().server.requests).toHaveLength(0);
   });
@@ -32,10 +38,18 @@ describe("the login action", () => {
     expect(await createLoginAction(world().dependencies)({ code: "   " })).toHaveProperty("url");
   });
 
-  it("completes in a second call that shares nothing with the first, exchanging with the verifier from the state", async () => {
-    const first = (await createLoginAction(world().dependencies)({})) as { url: string };
-    const verifier = decodeVerifier(new URL(first.url).searchParams.get("state") as string);
-    const code = `the-code#${new URL(first.url).searchParams.get("state")}`;
+  it("keeps the verifier out of the url, in the secret whose hash the url's challenge is", async () => {
+    const url = await startedUrl();
+    const { state, verifier } = pendingLogin();
+    expect(url.href).not.toContain(verifier);
+    expect(Buffer.from(state, "base64url").toString("latin1")).not.toContain("verifier");
+    expect(url.searchParams.get("state")).toBe(state);
+    expect(url.searchParams.get("code_challenge")).toBe(createHash("sha256").update(verifier).digest("base64url"));
+  });
+
+  it("completes in a second call that shares only the plugin's secrets with the first, exchanging with the kept verifier", async () => {
+    const code = await pastedCode();
+    const { verifier } = pendingLogin();
     const answer = await createLoginAction(world().dependencies)({ code });
     expect(answer).toEqual({ id: "me@example.com", label: "me@example.com", outcome: "added" });
     const body = JSON.parse(world().server.requestsTo("/v1/oauth/token")[0]?.body ?? "");
@@ -93,8 +107,29 @@ describe("the login action", () => {
     expect(world().server.requests).toHaveLength(0);
   });
 
-  it("refuses a state with no verifier, without reaching the endpoint", async () => {
-    await expect(createLoginAction(world().dependencies)({ code: `c#${Buffer.from("{}").toString("base64url")}` })).rejects.toThrow(/Missing PKCE verifier/);
+  it("refuses a paste when no sign in was started, without reaching the endpoint", async () => {
+    await expect(createLoginAction(world().dependencies)({ code: "c#some-state" })).rejects.toThrow(/does not belong to the sign in in progress/);
+    expect(world().server.requests).toHaveLength(0);
+  });
+
+  it("refuses a state it did not issue, without reaching the endpoint, and leaves the sign in in progress", async () => {
+    const genuine = await pastedCode();
+    await expect(createLoginAction(world().dependencies)({ code: "attacker-code#forged-state" })).rejects.toThrow(/does not belong to the sign in in progress/);
+    expect(world().server.requests).toHaveLength(0);
+    expect(await createLoginAction(world().dependencies)({ code: genuine })).toMatchObject({ outcome: "added" });
+  });
+
+  it("refuses the same paste a second time, so a code cannot be replayed", async () => {
+    const code = await pastedCode();
+    await createLoginAction(world().dependencies)({ code });
+    await expect(createLoginAction(world().dependencies)({ code })).rejects.toThrow(/does not belong to the sign in in progress/);
+    expect(world().server.requestsTo("/v1/oauth/token")).toHaveLength(1);
+  });
+
+  it("refuses the earlier url once a newer sign in has started", async () => {
+    const earlier = await pastedCode();
+    await startedUrl();
+    await expect(createLoginAction(world().dependencies)({ code: earlier })).rejects.toThrow(/does not belong to the sign in in progress/);
     expect(world().server.requests).toHaveLength(0);
   });
 

@@ -1,5 +1,4 @@
 import { CLAUDE_REDIRECT_URI } from "../constants.js";
-import { decodeVerifier } from "./state.js";
 import { describeRefusal, expiryOf, isTimeout, jsonBodyOf, objectMember, textMember } from "./token-set.js";
 import type { TokenSet } from "./token-set.js";
 
@@ -8,6 +7,7 @@ export interface ExchangeRequest {
   clientId: string;
   code: string;
   state: string;
+  verifier: string;
   now: number;
   signal?: AbortSignal;
 }
@@ -24,7 +24,7 @@ function labelOf(payload: unknown): string | undefined {
   return textMember(account, "email_address") ?? textMember(account, "email") ?? textMember(objectMember(payload, "organization"), "name");
 }
 
-async function post(request: ExchangeRequest, verifier: string): Promise<Response> {
+async function post(request: ExchangeRequest): Promise<Response> {
   return fetch(request.tokenUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -33,7 +33,7 @@ async function post(request: ExchangeRequest, verifier: string): Promise<Respons
       client_id: request.clientId,
       code: request.code,
       redirect_uri: CLAUDE_REDIRECT_URI,
-      code_verifier: verifier,
+      code_verifier: request.verifier,
       state: request.state,
     }),
     ...(request.signal === undefined ? {} : { signal: request.signal }),
@@ -53,15 +53,9 @@ function outcomeOf(payload: unknown, now: number): ExchangeOutcome {
  * rather than throwing, and the reason never carries a code, verifier or token.
  */
 export async function exchangeCode(request: ExchangeRequest): Promise<ExchangeOutcome> {
-  let verifier: string;
-  try {
-    verifier = decodeVerifier(request.state);
-  } catch (cause) {
-    return failure((cause as Error).message);
-  }
   let response: Response;
   try {
-    response = await post(request, verifier);
+    response = await post(request);
   } catch (cause) {
     if (isTimeout(cause)) return failure("the token endpoint did not answer in time");
     if (request.signal?.aborted === true) throw cause;

@@ -1,6 +1,9 @@
+import { randomBytes } from "node:crypto";
 import { CLAUDE_REDIRECT_URI, CLAUDE_SCOPES } from "../constants.js";
+import type { PendingLogin } from "./pending-login.js";
 import { createPkce } from "./pkce.js";
-import { encodeState } from "./state.js";
+
+const STATE_BYTES = 32;
 
 export interface AuthorizeOptions {
   authorizeUrl: string;
@@ -8,12 +11,16 @@ export interface AuthorizeOptions {
   entropy?: (size: number) => Buffer;
 }
 
-/**
- * The URL a user opens to grant a subscription token, its `state` carrying the PKCE verifier so the
- * exchange can run in another process.
- */
-export function authorizationUrl(options: AuthorizeOptions): string {
-  const pkce = createPkce(options.entropy);
+export interface AuthorizationRequest {
+  url: string;
+  pending: PendingLogin;
+}
+
+/** The URL a user opens to grant a subscription token, and the sign in the caller must keep to complete it. */
+export function authorizationRequest(options: AuthorizeOptions): AuthorizationRequest {
+  const entropy = options.entropy ?? randomBytes;
+  const pkce = createPkce(entropy);
+  const state = entropy(STATE_BYTES).toString("base64url");
   const url = new URL(options.authorizeUrl);
   url.searchParams.set("code", "true");
   url.searchParams.set("client_id", options.clientId);
@@ -22,6 +29,6 @@ export function authorizationUrl(options: AuthorizeOptions): string {
   url.searchParams.set("scope", CLAUDE_SCOPES.join(" "));
   url.searchParams.set("code_challenge", pkce.challenge);
   url.searchParams.set("code_challenge_method", "S256");
-  url.searchParams.set("state", encodeState(pkce.verifier));
-  return url.toString();
+  url.searchParams.set("state", state);
+  return { url: url.toString(), pending: { state, verifier: pkce.verifier } };
 }

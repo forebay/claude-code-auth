@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { authorizationUrl } from "../oauth/authorize.js";
+import { authorizationRequest } from "../oauth/authorize.js";
 import { exchangeCode } from "../oauth/exchange.js";
 import { parsePastedCallback } from "../oauth/paste.js";
+import { claimVerifier, rememberPendingLogin } from "../oauth/pending-login.js";
 import type { TokenSet } from "../oauth/token-set.js";
 import { accepted, accessSecretName, findAccount, refreshSecretName, secretsOf } from "./dependencies.js";
 import type { AccountDependencies } from "./dependencies.js";
@@ -62,7 +63,8 @@ function upsertAccount(dependencies: AccountDependencies, id: string, tokens: To
 }
 
 async function complete(dependencies: AccountDependencies, pasted: { code: string; state: string }): Promise<LoginAnswer> {
-  const exchanged = await exchangeCode({ tokenUrl: dependencies.settings().tokenUrl, clientId: dependencies.clientId(), code: pasted.code, state: pasted.state, now: dependencies.clock(), signal: AbortSignal.timeout(EXCHANGE_TIMEOUT_MILLISECONDS) });
+  const verifier = await claimVerifier(secretsOf(dependencies), pasted.state);
+  const exchanged = await exchangeCode({ tokenUrl: dependencies.settings().tokenUrl, clientId: dependencies.clientId(), code: pasted.code, state: pasted.state, verifier, now: dependencies.clock(), signal: AbortSignal.timeout(EXCHANGE_TIMEOUT_MILLISECONDS) });
   if (!exchanged.ok) throw new Error(`the sign in could not be completed: ${exchanged.error}; run login without a code for a new url`);
   const id = accountIdOf(exchanged.label, exchanged.tokens);
   const previous = await previousTokens(dependencies, id);
@@ -79,15 +81,16 @@ async function complete(dependencies: AccountDependencies, pasted: { code: strin
  * The `login` action. With no `code` it answers the authorize url; with the pasted `code#state` it
  * exchanges it, keeps the tokens in the plugin's secrets and the account, without them, in the store.
  *
- * @remarks Each call may be its own process, so nothing is held between the two steps: the PKCE
- * verifier travels inside the `state` the url carries and comes back with the paste.
+ * @remarks Each call may be its own process, so the two steps share only the plugin's secrets, which
+ * hold the PKCE verifier against the random `state` the url carries.
  */
 export function createLoginAction(dependencies: AccountDependencies): (input: { code?: unknown }) => Promise<LoginAnswer> {
   return async (input) => {
     secretsOf(dependencies);
     const pasted = parsePastedCallback(typeof input.code === "string" ? input.code : undefined);
     if (pasted === undefined) {
-      const url = authorizationUrl({ authorizeUrl: dependencies.settings().authorizeUrl, clientId: dependencies.clientId() });
+      const { url, pending } = authorizationRequest({ authorizeUrl: dependencies.settings().authorizeUrl, clientId: dependencies.clientId() });
+      await rememberPendingLogin(secretsOf(dependencies), pending);
       return { url, next: NEXT_STEP };
     }
     if (pasted.state === undefined) throw new Error("the pasted text carries no state; paste the whole code#state shown after signing in");

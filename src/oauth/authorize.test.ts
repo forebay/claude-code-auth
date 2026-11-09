@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { authorizationUrl } from "./authorize.js";
-import { decodeVerifier } from "./state.js";
+import { authorizationRequest } from "./authorize.js";
 
 const AUTHORIZE_URL = "https://claude.ai/oauth/authorize";
 const CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const entropy = () => Buffer.alloc(64, 9);
 
 describe("authorizationUrl", () => {
-  const url = new URL(authorizationUrl({ authorizeUrl: AUTHORIZE_URL, clientId: CLIENT_ID, entropy }));
+  const { url: issued, pending } = authorizationRequest({ authorizeUrl: AUTHORIZE_URL, clientId: CLIENT_ID, entropy });
+  const url = new URL(issued);
 
   it("points at the configured authorize endpoint", () => {
     expect(`${url.origin}${url.pathname}`).toBe(AUTHORIZE_URL);
@@ -26,14 +26,20 @@ describe("authorizationUrl", () => {
     });
   });
 
-  it("packs the verifier into the state, so the exchange can run in another process", () => {
-    const verifier = decodeVerifier(url.searchParams.get("state") as string);
-    expect(verifier).toBe(entropy().toString("base64url"));
-    expect(url.searchParams.get("code_challenge")).toBe(createHash("sha256").update(verifier).digest("base64url"));
+  it("hands back the state it issued and the verifier the challenge was made from", () => {
+    expect(url.searchParams.get("state")).toBe(pending.state);
+    expect(pending.verifier).toBe(entropy().toString("base64url"));
+    expect(url.searchParams.get("code_challenge")).toBe(createHash("sha256").update(pending.verifier).digest("base64url"));
+  });
+
+  it("draws a state of its own that does not carry the verifier", () => {
+    const random = authorizationRequest({ authorizeUrl: AUTHORIZE_URL, clientId: CLIENT_ID });
+    expect(random.pending.state).toHaveLength(43);
+    expect(random.url).not.toContain(random.pending.verifier);
   });
 
   it("uses the client id it is given", () => {
-    const other = new URL(authorizationUrl({ authorizeUrl: AUTHORIZE_URL, clientId: "another-client", entropy }));
+    const other = new URL(authorizationRequest({ authorizeUrl: AUTHORIZE_URL, clientId: "another-client", entropy }).url);
     expect(other.searchParams.get("client_id")).toBe("another-client");
   });
 });
