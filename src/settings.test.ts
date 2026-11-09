@@ -31,6 +31,16 @@ describe("readSettings", () => {
   });
 });
 
+describe.each(["oauth_token_url", "api_base_url"])("the %s setting, which receives account tokens", (key) => {
+  it.each(["https://example.test/token", "http://localhost:1", "http://127.0.0.1:1", "http://127.9.9.9:1", "http://[::1]:1"])("accepts %s", (url) => {
+    expect(() => readSettings(configOf({ ...MANIFEST_DEFAULTS, [key]: url }))).not.toThrow();
+  });
+
+  it.each(["http://example.test", "http://127.0.0.1.example.com", "http://localhost.example.com", "http://127.0.0.1@example.test", "ftp://127.0.0.1", "not a url"])("refuses %s", (url) => {
+    expect(() => readSettings(configOf({ ...MANIFEST_DEFAULTS, [key]: url }))).toThrow(new RegExp(`${key} setting of claude-code-auth must be an https url`));
+  });
+});
+
 describe("clientIdOf", () => {
   it("is the public client unless CLAUDE_CODE_CLIENT_ID overrides it", () => {
     expect(clientIdOf({})).toBe("9d1c250a-e61b-44d9-88ed-5944d1962f5e");
