@@ -12,11 +12,11 @@ jobs:
       toolchains: node
       runners: '["ubuntu-latest","windows-latest","macos-latest"]'
       extra_repositories: |
-        forebay/anthropic-translator siblings/anthropic-translator 649a7a3a75a720bd24b711de5ee96482373f20f8
-        forebay/host siblings/anthropic-translator/siblings/host 8238c09ef5347b667b251083beff586e20d629ff
+        forebay/anthropic-translator siblings/anthropic-translator 6e232e4121bafaece98f052639d8a53c7de729dd
+        forebay/host siblings/anthropic-translator/siblings/host ec684c69eec1088de85154eda45b7e033e04a731
         weivel/model siblings/anthropic-translator/siblings/host/siblings/model 606988fb178b04d3f53835e6d982c09f31081ef1
         weivel/typescript siblings/anthropic-translator/siblings/host/siblings/typescript 46bf872abbfcfe164294a9b3daa40fa0c26fff77
         forebay/forebay-library siblings/library 6fd0245f7bfbca794fe8b832b48c1eeb043f32fb
       node_install: npm ci --prefix siblings/anthropic-translator/siblings/host/siblings/model && npm ci --prefix siblings/anthropic-translator/siblings/host/siblings/typescript && npm ci --prefix siblings/anthropic-translator/siblings/host && npm ci --prefix siblings/anthropic-translator && npm ci
-      node_build: cmake -S siblings/library -B siblings/library/build && cmake --build siblings/library/build --config Release --target apps && npm run build --prefix siblings/anthropic-translator/siblings/host/siblings/typescript && npm run build --prefix siblings/anthropic-translator/siblings/host && npm run build --prefix siblings/anthropic-translator && npm run build
+      node_build: cmake -S siblings/library -B siblings/library/build && cmake --build siblings/library/build --config Release --target forebay_library && npm run build --prefix siblings/anthropic-translator/siblings/host/siblings/typescript && npm run build --prefix siblings/anthropic-translator/siblings/host && npm run build --prefix siblings/anthropic-translator && npm run build
       node_test: npm test
