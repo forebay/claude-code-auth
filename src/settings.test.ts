@@ -27,7 +27,7 @@ describe("readSettings", () => {
 
   it("names a missing or mistyped setting", () => {
     expect(() => readSettings(configOf({ ...MANIFEST_DEFAULTS, oauth_token_url: undefined }))).toThrow(/oauth_token_url setting is missing/);
-    expect(() => readSettings(configOf({ ...MANIFEST_DEFAULTS, logging: "yes" }))).toThrow(/logging setting of claude-code-auth must be a boolean/);
+    expect(() => readSettings(configOf({ ...MANIFEST_DEFAULTS, logging: "yes" }))).toThrow(/logging setting of claude-code-provider must be a boolean/);
   });
 });
 
@@ -37,7 +37,7 @@ describe.each(["oauth_token_url", "api_base_url"])("the %s setting, which receiv
   });
 
   it.each(["http://example.test", "http://127.0.0.1.example.com", "http://localhost.example.com", "http://127.0.0.1@example.test", "ftp://127.0.0.1", "not a url"])("refuses %s", (url) => {
-    expect(() => readSettings(configOf({ ...MANIFEST_DEFAULTS, [key]: url }))).toThrow(new RegExp(`${key} setting of claude-code-auth must be an https url`));
+    expect(() => readSettings(configOf({ ...MANIFEST_DEFAULTS, [key]: url }))).toThrow(new RegExp(`${key} setting of claude-code-provider must be an https url`));
   });
 });
 

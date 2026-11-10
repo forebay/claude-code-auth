@@ -11,12 +11,12 @@ import { createProvider } from "./provider.js";
 import { clientIdOf, readSettings } from "./settings.js";
 
 const ACCOUNTS_STORE_FILE = "accounts.json";
-const ACTIONS_SERVICE = "claude-code-auth:accounts";
+const ACTIONS_SERVICE = "claude-code-provider:accounts";
 
 function accountsOf(context: PluginContext): () => AccountsService {
   return () => {
     const accounts = context.services.get(context.service<AccountsService>("accounts"));
-    if (accounts === undefined) throw new Error("this host offers no accounts service, so claude-code-auth cannot pick an account");
+    if (accounts === undefined) throw new Error("this host offers no accounts service, so claude-code-provider cannot pick an account");
     return accounts;
   };
 }

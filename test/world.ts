@@ -66,7 +66,7 @@ export function useWorld(): () => World {
         clientId: () => "client-under-test",
         clock: () => time,
         random: () => 0.5,
-        loginCommand: loginCommandOf("claude-code-loader", "claude-code-auth"),
+        loginCommand: loginCommandOf("claude-code-loader", "claude-code-provider"),
         log: (message) => reports.push(message),
       },
     };

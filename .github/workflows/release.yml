@@ -51,7 +51,7 @@ jobs:
       tag: ${{ inputs.tag }}
       patch_ceiling: 20
       require_clean_readme: false
-      unscoped_name: 'claude-code-auth'
+      unscoped_name: 'claude-code-provider'
       scope: 'intisy-ai'
       pin_file_deps: true
       readme_from_default_branch: true

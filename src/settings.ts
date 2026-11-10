@@ -25,8 +25,8 @@ export interface ClaudeSettings {
 
 function required<T>(config: PluginConfig, key: string, type: "string" | "number" | "boolean"): T {
   const value = config.get<unknown>(key);
-  if (value === undefined) throw new Error(`the ${key} setting is missing from claude-code-auth's configuration`);
-  if (typeof value !== type) throw new Error(`the ${key} setting of claude-code-auth must be a ${type}`);
+  if (value === undefined) throw new Error(`the ${key} setting is missing from claude-code-provider's configuration`);
+  if (typeof value !== type) throw new Error(`the ${key} setting of claude-code-provider must be a ${type}`);
   return value as T;
 }
 
@@ -45,7 +45,7 @@ function isSafeForTokens(text: string): boolean {
 
 function tokenBearingUrl(config: PluginConfig, key: string): string {
   const value = required<string>(config, key, "string");
-  if (!isSafeForTokens(value)) throw new Error(`the ${key} setting of claude-code-auth must be an https url, or http on a loopback address, because account tokens are sent to it`);
+  if (!isSafeForTokens(value)) throw new Error(`the ${key} setting of claude-code-provider must be an https url, or http on a loopback address, because account tokens are sent to it`);
   return value;
 }
 

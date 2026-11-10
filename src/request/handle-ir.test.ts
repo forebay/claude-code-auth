@@ -97,7 +97,7 @@ function dependenciesFor(accounts: AccountsService, overrides: Record<string, un
     clientId: () => "client",
     clock: () => NOW,
     random: () => 0.5,
-    loginCommand: loginCommandOf("claude-code-loader", "claude-code-auth"),
+    loginCommand: loginCommandOf("claude-code-loader", "claude-code-provider"),
     log: (message) => logged.push(message),
   };
 }

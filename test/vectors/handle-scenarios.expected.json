@@ -849,7 +849,7 @@
         "content-type": "application/json",
         "x-hub-chat-error": "1"
       },
-      "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"No Claude account available, all accounts are disabled or logged out. Run `forebay-host action claude-code-loader claude-code-auth login` to log one in.\"}}"
+      "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"No Claude account available, all accounts are disabled or logged out. Run `forebay-host action claude-code-loader claude-code-provider login` to log one in.\"}}"
     },
     "calls": [
       [

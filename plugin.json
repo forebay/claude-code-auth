@@ -1,6 +1,6 @@
 {
   "$schema": "https://weivel.github.io/model/plugin.schema.json",
-  "id": "claude-code-auth",
+  "id": "claude-code-provider",
   "api": 1,
   "version": "2.12.5",
   "entry": "dist/plugin.js",
@@ -14,7 +14,7 @@
   ],
   "services": {
     "provides": [
-      "claude-code-auth:accounts"
+      "claude-code-provider:accounts"
     ],
     "consumes": [
       "accounts"
@@ -23,7 +23,7 @@
   "actions": {
     "login": {
       "label": "Sign in to Claude",
-      "call": { "service": "claude-code-auth:accounts", "method": "login" },
+      "call": { "service": "claude-code-provider:accounts", "method": "login" },
       "input": {
         "code": {
           "type": "text",
@@ -34,25 +34,25 @@
     },
     "accounts": {
       "label": "List accounts",
-      "call": { "service": "claude-code-auth:accounts", "method": "list" }
+      "call": { "service": "claude-code-provider:accounts", "method": "list" }
     },
     "verify": {
       "label": "Verify access",
-      "call": { "service": "claude-code-auth:accounts", "method": "verify" }
+      "call": { "service": "claude-code-provider:accounts", "method": "verify" }
     },
     "refresh": {
       "label": "Refresh token",
-      "call": { "service": "claude-code-auth:accounts", "method": "refresh" }
+      "call": { "service": "claude-code-provider:accounts", "method": "refresh" }
     },
     "quota": {
       "label": "Refresh quota",
-      "call": { "service": "claude-code-auth:accounts", "method": "quota" }
+      "call": { "service": "claude-code-provider:accounts", "method": "quota" }
     },
     "remove": {
       "label": "Remove account",
       "confirm": "Remove this account and its tokens?",
       "tone": "danger",
-      "call": { "service": "claude-code-auth:accounts", "method": "remove" }
+      "call": { "service": "claude-code-provider:accounts", "method": "remove" }
     }
   },
   "config": {

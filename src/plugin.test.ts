@@ -41,7 +41,7 @@ afterEach(async () => {
 });
 
 async function activated(accounts: AccountsService | null = library.accounts): Promise<Hosted> {
-  const pluginDirectory = mkdtempSync(join(tmpdir(), "claude-code-auth-plugin-"));
+  const pluginDirectory = mkdtempSync(join(tmpdir(), "claude-code-provider-plugin-"));
   directories.push(pluginDirectory);
   const settings = settingsFor(server);
   const secrets = fakeSecrets();
@@ -72,7 +72,7 @@ async function activated(accounts: AccountsService | null = library.accounts): P
 
 describe("the manifest", () => {
   it("is a provider that consumes the accounts service, with the settings it always had and the three upstream urls", () => {
-    expect(MANIFEST.id).toBe("claude-code-auth");
+    expect(MANIFEST.id).toBe("claude-code-provider");
     expect(MANIFEST.capabilities).toEqual(["provider"]);
     expect(MANIFEST.services.consumes).toEqual(["accounts"]);
     expect(MANIFEST.config.defaults).toEqual({
@@ -155,7 +155,7 @@ describe("the provider", () => {
     const { provider } = await activated();
     const answer = (await provider.handleIr(REQUEST, NEVER_ABORTED)) as IrFailure;
     expect(answer.status).toBe(400);
-    expect(JSON.parse(answer.body).error.message).toBe("No Claude account available, all accounts are disabled or logged out. Run `forebay-host action the-loader claude-code-auth login` to log one in.");
+    expect(JSON.parse(answer.body).error.message).toBe("No Claude account available, all accounts are disabled or logged out. Run `forebay-host action the-loader claude-code-provider login` to log one in.");
     expect(server.requests).toHaveLength(0);
   });
 

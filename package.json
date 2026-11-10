@@ -1,5 +1,5 @@
 {
-  "name": "claude-code-auth",
+  "name": "claude-code-provider",
   "version": "2.12.5",
   "description": "Claude Code subscription auth provider on the shared host, multiple Claude accounts via OAuth, with subscription rate limits exposed to the proxy.",
   "main": "dist/plugin.js",
@@ -8,7 +8,7 @@
   "author": "intisy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/forebay/claude-code-auth.git"
+    "url": "git+https://github.com/forebay/claude-code-provider.git"
   },
   "keywords": [
     "claude",

@@ -19,7 +19,7 @@ export interface AccountDependencies {
 }
 
 export function secretsOf(dependencies: AccountDependencies): PluginSecrets {
-  if (dependencies.secrets === undefined) throw new Error("this host has no secret store, which claude-code-auth keeps its account tokens in");
+  if (dependencies.secrets === undefined) throw new Error("this host has no secret store, which claude-code-provider keeps its account tokens in");
   return dependencies.secrets;
 }
 

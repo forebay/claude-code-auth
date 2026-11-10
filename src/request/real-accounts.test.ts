@@ -40,7 +40,7 @@ function dependencies(strategy: string): AccountDependencies {
     clientId: () => "client",
     clock: () => NOW,
     random: () => 0.5,
-    loginCommand: loginCommandOf("claude-code-loader", "claude-code-auth"),
+    loginCommand: loginCommandOf("claude-code-loader", "claude-code-provider"),
     log: () => {},
   };
 }
