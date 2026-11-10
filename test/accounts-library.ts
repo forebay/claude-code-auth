@@ -7,7 +7,7 @@ import type { AccountsService, ForebayLibrary, ForebayLibrarySource } from "@for
 const CHECKOUT = join(import.meta.dirname, "..", "siblings", "library");
 
 /**
- * @implNote The CMake of `forebay/library` sets only the runtime output folder, so the Windows DLL
+ * @implNote The CMake of `forebay-library` sets only the runtime output folder, so the Windows DLL
  * lands in `build/bin/Release` while a shared object or dylib stays in `build` itself.
  */
 function builtLibrary(): ForebayLibrarySource {
@@ -19,7 +19,7 @@ function builtLibrary(): ForebayLibrarySource {
   };
 }
 
-/** The real `accounts` service of the built `forebay/library`, with a store path in a temp folder. */
+/** The real `accounts` service of the built `forebay-library`, with a store path in a temp folder. */
 export interface TestAccounts {
   accounts: AccountsService;
   base: string;
