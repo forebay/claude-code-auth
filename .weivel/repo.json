@@ -1,0 +1,46 @@
+{
+  "format": 1,
+  "importName": "claude-code-provider",
+  "description": "Signs in to Claude subscription accounts and sends requests through them.",
+  "topics": [
+    "ai",
+    "ai-provider",
+    "ai-proxy",
+    "anthropic",
+    "claude",
+    "forebay",
+    "llm",
+    "provider",
+    "typescript"
+  ],
+  "dependencies": [
+    {
+      "id": "github:1315506225",
+      "importName": "anthropic-translator",
+      "commit": "e7229c190a615a5a67bbe99dd7668e448b768a5c"
+    },
+    {
+      "id": "github:1443361890",
+      "importName": "host",
+      "commit": "ab55d183d61cfbbc4ff12f02ddd5b4c39b8cf542",
+      "path": "siblings/anthropic-translator/siblings/host"
+    },
+    {
+      "id": "github:1427176225",
+      "importName": "model",
+      "commit": "606988fb178b04d3f53835e6d982c09f31081ef1",
+      "path": "siblings/anthropic-translator/siblings/host/siblings/model"
+    },
+    {
+      "id": "github:1427561829",
+      "importName": "typescript",
+      "commit": "46bf872abbfcfe164294a9b3daa40fa0c26fff77",
+      "path": "siblings/anthropic-translator/siblings/host/siblings/typescript"
+    },
+    {
+      "id": "github:1434954468",
+      "importName": "forebay-library",
+      "commit": "6fd0245f7bfbca794fe8b832b48c1eeb043f32fb"
+    }
+  ]
+}

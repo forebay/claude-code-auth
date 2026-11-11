@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { openForebayLibrary } from "@forebay/host";
 import type { AccountsService, ForebayLibrary, ForebayLibrarySource } from "@forebay/host";
 
-const CHECKOUT = join(import.meta.dirname, "..", "siblings", "library");
+const CHECKOUT = join(import.meta.dirname, "..", "siblings", "forebay-library");
 
 /**
  * @implNote The CMake of `forebay-library` sets only the runtime output folder, so the Windows DLL

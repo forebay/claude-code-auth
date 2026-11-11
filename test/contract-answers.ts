@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Ajv } from "ajv";
 
-const CONTRACTS = join(import.meta.dirname, "..", "siblings", "library", "contracts");
+const CONTRACTS = join(import.meta.dirname, "..", "siblings", "forebay-library", "contracts");
 const SCHEMA_FILES = ["ir.schema.json", "provider.schema.json"];
 const PROVIDER_ID = "https://forebay.github.io/library/contracts/provider.schema.json";
 
